@@ -1,5 +1,5 @@
 import React from 'react';
-import { Package, MapPin, QrCode, Trash2 } from 'lucide-react';
+import { Package, MapPin, QrCode, Trash2, Pencil } from 'lucide-react';
 import { getStockStatus } from '../db/dbService';
 import type { Material } from '../db/dbService';
 
@@ -13,6 +13,7 @@ interface MaterialsViewProps {
   onAddTransactionClick: (m: Material) => void;
   onPrintQrClick: (m: Material) => void;
   onDeleteClick: (m: Material) => void;
+  onEditClick: (m: Material) => void;
   isMobile?: boolean;
   onMobileScanClick?: (materialId: string) => void;
 }
@@ -27,6 +28,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
   onAddTransactionClick,
   onPrintQrClick,
   onDeleteClick,
+  onEditClick,
   isMobile = false,
   onMobileScanClick
 }) => {
@@ -84,30 +86,49 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                     <p style={{ fontSize: '10px' }}>Azonosító: {m.id} • Hely: {m.location}</p>
                   </div>
                 </div>
-                <div className="mobile-stock-card-right" style={{ marginRight: user.role === 'admin' ? '24px' : '0px' }}>
+                <div className="mobile-stock-card-right" style={{ marginRight: user.role === 'admin' ? '56px' : '0px' }}>
                   <span className={`mobile-stock-qty ${status}`} style={{ fontSize: '13px' }}>{m.quantity} {m.unit}</span>
                   <span className="pct-badge" style={{ fontSize: '10px', margin: 0 }}>{pct}% szint</span>
                 </div>
                 {user.role === 'admin' && (
-                  <button
-                    type="button"
+                  <div 
                     style={{
                       position: 'absolute',
                       right: '12px',
                       top: '50%',
                       transform: 'translateY(-50%)',
-                      color: 'var(--danger)',
-                      background: 'transparent',
-                      border: 'none',
-                      padding: '4px'
+                      display: 'flex',
+                      gap: '8px',
                     }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteClick(m);
-                    }}
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <Trash2 size={16} />
-                  </button>
+                    <button
+                      type="button"
+                      style={{
+                        color: 'var(--primary)',
+                        background: 'transparent',
+                        border: 'none',
+                        padding: '4px'
+                      }}
+                      title="Szerkesztés"
+                      onClick={() => onEditClick(m)}
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      style={{
+                        color: 'var(--danger)',
+                        background: 'transparent',
+                        border: 'none',
+                        padding: '4px'
+                      }}
+                      title="Törlés"
+                      onClick={() => onDeleteClick(m)}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 )}
               </div>
             );
@@ -161,7 +182,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
               <th>Raktárhely</th>
               <th>Készletszint</th>
               <th>Mértékegység</th>
-              <th style={{ textAlign: 'right' }}>Műveletek</th>
+              <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>Műveletek</th>
             </tr>
           </thead>
           <tbody>
@@ -208,12 +229,12 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                     </div>
                   </td>
                   <td>{m.unit}</td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'nowrap' }}>
                       <button
                         type="button"
                         className="btn-secondary"
-                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                        style={{ padding: '6px 10px', fontSize: '11px', width: 'auto' }}
                         onClick={() => onAddTransactionClick(m)}
                       >
                         Kiadás / Bevétel
@@ -221,22 +242,33 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                       <button
                         type="button"
                         className="btn-secondary"
-                        style={{ padding: '6px', color: 'var(--text-secondary)' }}
+                        style={{ padding: '6px', color: 'var(--text-secondary)', width: 'auto' }}
                         title="QR-kód megtekintése"
                         onClick={() => onPrintQrClick(m)}
                       >
                         <QrCode size={16} />
                       </button>
                       {user.role === 'admin' && (
-                        <button
-                          type="button"
-                          className="btn-secondary"
-                          style={{ padding: '6px', color: 'var(--danger)' }}
-                          title="Anyag törlése"
-                          onClick={() => onDeleteClick(m)}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            style={{ padding: '6px', color: 'var(--primary)', width: 'auto' }}
+                            title="Anyag szerkesztése"
+                            onClick={() => onEditClick(m)}
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            style={{ padding: '6px', color: 'var(--danger)', width: 'auto' }}
+                            title="Anyag törlése"
+                            onClick={() => onDeleteClick(m)}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>

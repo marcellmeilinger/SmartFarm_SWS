@@ -43,6 +43,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showNewMaterialModal, setShowNewMaterialModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   
   // Selected material for transaction (Checkout / Intake)
   const [transactionMaterial, setTransactionMaterial] = useState<Material | null>(null);
@@ -106,6 +107,40 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       await loadData();
     } catch (err: any) {
       alert(err.message || 'Mentés sikertelen.');
+    }
+  };
+
+  // Handle Material Editing
+  const handleEditMaterial = async (updatedData: Omit<Material, 'qr_code_url'>) => {
+    if (!editingMaterial) return;
+    try {
+      await dbService.updateMaterial(editingMaterial.id, {
+        name: updatedData.name.trim(),
+        quantity: Number(updatedData.quantity),
+        max_quantity: Number(updatedData.max_quantity),
+        unit: updatedData.unit,
+        category: updatedData.category,
+        location: updatedData.location.toUpperCase(),
+        image_url: updatedData.image_url,
+      });
+
+      // Log a transaction if quantity was modified directly during editing
+      const diff = Number(updatedData.quantity) - editingMaterial.quantity;
+      if (diff !== 0) {
+        await dbService.addTransaction({
+          material_id: editingMaterial.id,
+          material_name: updatedData.name.trim(),
+          type: diff > 0 ? 'intake' : 'checkout',
+          quantity: diff,
+          user_name: user.name,
+          notes: 'Készlet közvetlen korrekciója szerkesztéssel'
+        });
+      }
+
+      setEditingMaterial(null);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Módosítás sikertelen.');
     }
   };
 
@@ -288,6 +323,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 onAddTransactionClick={setTransactionMaterial}
                 onPrintQrClick={setViewingQrMaterial}
                 onDeleteClick={handleDeleteMaterial}
+                onEditClick={setEditingMaterial}
               />
             )}
             {activeView === 'movements' && (
@@ -392,6 +428,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
               onAddTransactionClick={setTransactionMaterial}
               onPrintQrClick={setViewingQrMaterial}
               onDeleteClick={handleDeleteMaterial}
+              onEditClick={setEditingMaterial}
               isMobile={true}
               onMobileScanClick={handleScanSuccess}
             />
@@ -510,6 +547,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           onSave={handleAddMaterial}
           onCancel={() => setShowNewMaterialModal(false)}
           existingIds={materials.map(m => m.id)}
+        />
+      )}
+
+      {/* 2.1. Modal: EDIT MATERIAL FORM */}
+      {editingMaterial && (
+        <MaterialForm
+          onSave={handleEditMaterial}
+          onCancel={() => setEditingMaterial(null)}
+          existingIds={materials.map(m => m.id)}
+          initialData={editingMaterial}
         />
       )}
 

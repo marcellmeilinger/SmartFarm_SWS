@@ -401,6 +401,33 @@ export const dbService = {
     return data;
   },
 
+  // UPDATE MATERIAL (Admin function)
+  updateMaterial: async (id: string, updates: Omit<Material, 'id' | 'qr_code_url' | 'created_at'>): Promise<Material> => {
+    if (dbService.isMockMode()) {
+      const mats = getLocalMaterials();
+      const idx = mats.findIndex(m => m.id === id);
+      if (idx === -1) throw new Error(`Nem található anyag: ${id}`);
+      
+      const updatedMaterial: Material = {
+        ...mats[idx],
+        ...updates,
+      };
+      mats[idx] = updatedMaterial;
+      saveLocalMaterials(mats);
+      return updatedMaterial;
+    }
+
+    const { data, error } = await supabase!
+      .from('materials')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   // UPDATE MATERIAL QUANTITY (Checkout / Intake)
   updateMaterialQuantity: async (id: string, newQty: number): Promise<Material> => {
     if (dbService.isMockMode()) {
