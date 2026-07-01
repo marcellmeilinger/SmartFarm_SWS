@@ -522,13 +522,17 @@ export const dbService = {
     if (dbService.isMockMode()) {
       const savedUsersJson = localStorage.getItem(STORAGE_KEYS.USERS);
       const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
-      // Combine with the default mock users if they are not already there
+      // Combine with the default mock users, prioritizing local storage settings if any
       const defaultUsers: UserProfile[] = [
         { id: '1', name: 'Kovács Gábor', email: 'kovacs.gabor@ceg.hu', role: 'admin' },
         { id: '2', name: 'Kezelő János', email: 'kezelo.janos@ceg.hu', role: 'operator' },
       ];
       
-      const combined = [...defaultUsers];
+      const combined = defaultUsers.map(du => {
+        const saved = savedUsers.find((su: any) => su.email === du.email);
+        return saved ? { ...du, role: saved.role } : du;
+      });
+
       savedUsers.forEach((u: any) => {
         if (!combined.some(c => c.email === u.email)) {
           combined.push({
@@ -554,5 +558,44 @@ export const dbService = {
       name: u.name || 'Névtelen Felhasználó',
       role: u.role === 'admin' ? 'admin' : 'operator',
     }));
+  },
+
+  // UPDATE USER PROFILE ROLE
+  updateUserProfileRole: async (userId: string, newRole: 'admin' | 'operator'): Promise<void> => {
+    if (dbService.isMockMode()) {
+      const savedUsersJson = localStorage.getItem(STORAGE_KEYS.USERS);
+      let savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
+      
+      const idx = savedUsers.findIndex((u: any) => u.id === userId || u.email === userId);
+      if (idx !== -1) {
+        savedUsers[idx].role = newRole;
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(savedUsers));
+      } else {
+        const defaultUsers = [
+          { id: '1', name: 'Kovács Gábor', email: 'kovacs.gabor@ceg.hu', role: 'admin' },
+          { id: '2', name: 'Kezelő János', email: 'kezelo.janos@ceg.hu', role: 'operator' },
+        ];
+        const defaultUser = defaultUsers.find(u => u.id === userId || u.email === userId);
+        if (defaultUser) {
+          const newUser = {
+            id: defaultUser.id,
+            name: defaultUser.name,
+            email: defaultUser.email,
+            password: 'password123',
+            role: newRole
+          };
+          savedUsers.push(newUser);
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(savedUsers));
+        }
+      }
+      return;
+    }
+
+    const { error } = await supabase!
+      .from('profiles')
+      .update({ role: newRole })
+      .eq('id', userId);
+
+    if (error) throw error;
   }
 };

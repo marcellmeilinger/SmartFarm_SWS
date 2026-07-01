@@ -4,7 +4,7 @@ import {
   Plus, ArrowLeftRight, QrCode, Users as UsersIcon,
   Settings as SettingsIcon, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
-import { dbService, getStockStatus } from '../db/dbService';
+import { dbService } from '../db/dbService';
 import type { Material, Transaction, UserProfile } from '../db/dbService';
 import { supabase, isSupabaseConfigured } from '../db/supabaseClient';
 import { MaterialForm } from './MaterialForm';
@@ -304,8 +304,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     setDeleteConfirmMaterial(material);
   };
 
-  // Stats calculation for notifications badge
-  const lowStockCount = materials.filter(m => getStockStatus(m.quantity, m.max_quantity) !== 'green').length;
+  // Handle User Role Update
+  const handleUpdateUserRole = async (userId: string, newRole: 'admin' | 'operator') => {
+    try {
+      await dbService.updateUserProfileRole(userId, newRole);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Hiba történt a jogosultság módosítása során.');
+    }
+  };
   
   // Calculate unread transactions for the bell badge
   const unreadCount = transactions.filter(
@@ -368,13 +375,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
               <QrCode size={18} />
               <span>QR-kódok</span>
             </button>
-            <button
-              className={`nav-item ${activeView === 'users' ? 'active' : ''}`}
-              onClick={() => setActiveView('users')}
-            >
-              <UsersIcon size={18} />
-              <span>Felhasználók</span>
-            </button>
+            {user.role === 'admin' && (
+              <button
+                className={`nav-item ${activeView === 'users' ? 'active' : ''}`}
+                onClick={() => setActiveView('users')}
+              >
+                <UsersIcon size={18} />
+                <span>Felhasználók</span>
+              </button>
+            )}
             <button
               className={`nav-item ${activeView === 'settings' ? 'active' : ''}`}
               onClick={() => setActiveView('settings')}
@@ -552,8 +561,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 onPrintQrClick={setViewingQrMaterial}
               />
             )}
-            {activeView === 'users' && (
-              <UsersView users={users} />
+            {activeView === 'users' && user.role === 'admin' && (
+              <UsersView users={users} onUpdateUserRole={handleUpdateUserRole} />
             )}
             {activeView === 'settings' && (
               <SettingsView isMock={isMock} />

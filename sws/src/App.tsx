@@ -13,6 +13,7 @@ interface UserSession {
 function App() {
   const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [isRecoveringPassword, setIsRecoveringPassword] = useState(false);
 
   // Fetch user profile details from profiles table, falling back to user metadata
   const fetchUserProfile = async (supabaseUser: any): Promise<UserSession> => {
@@ -46,14 +47,20 @@ function App() {
 
   // Check session on mount and subscribe to auth changes
   useEffect(() => {
+    // Check if the URL is a password recovery link
+    if (window.location.hash.includes('type=recovery') || window.location.href.includes('type=recovery')) {
+      setIsRecoveringPassword(true);
+    }
+
     if (!isSupabaseConfigured) {
-      const savedUser = localStorage.getItem('smartfarm_current_user');
+      const savedUser = localStorage.getItem('smartfarm_current_user') || sessionStorage.getItem('smartfarm_current_user');
       if (savedUser) {
         try {
           setCurrentUser(JSON.parse(savedUser));
         } catch (err) {
           console.error('Failed to parse saved user session', err);
           localStorage.removeItem('smartfarm_current_user');
+          sessionStorage.removeItem('smartfarm_current_user');
         }
       }
       setCheckingSession(false);
@@ -82,6 +89,9 @@ function App() {
 
     const { data: { subscription } } = supabase!.auth.onAuthStateChange(async (event, session) => {
       console.log('Supabase Auth Event:', event);
+      if (event === 'PASSWORD_RECOVERY' && mounted) {
+        setIsRecoveringPassword(true);
+      }
       if (session && session.user && mounted) {
         const userSession = await fetchUserProfile(session.user);
         setCurrentUser(userSession);
@@ -100,7 +110,14 @@ function App() {
   const handleLogin = (user: UserSession) => {
     setCurrentUser(user);
     if (!isSupabaseConfigured) {
-      localStorage.setItem('smartfarm_current_user', JSON.stringify(user));
+      const remember = localStorage.getItem('smartfarm_remember_me') !== 'false';
+      if (remember) {
+        localStorage.setItem('smartfarm_current_user', JSON.stringify(user));
+        sessionStorage.removeItem('smartfarm_current_user');
+      } else {
+        sessionStorage.setItem('smartfarm_current_user', JSON.stringify(user));
+        localStorage.removeItem('smartfarm_current_user');
+      }
     }
   };
 
@@ -114,6 +131,7 @@ function App() {
     }
     setCurrentUser(null);
     localStorage.removeItem('smartfarm_current_user');
+    sessionStorage.removeItem('smartfarm_current_user');
   };
 
   if (checkingSession) {
@@ -137,7 +155,26 @@ function App() {
 
   return (
     <>
-      {currentUser === null ? (
+      {isRecoveringPassword ? (
+        <Login 
+          onLogin={handleLogin} 
+          initialView="reset-password"
+          onPasswordResetComplete={async () => {
+            setIsRecoveringPassword(false);
+            if (isSupabaseConfigured) {
+              await supabase!.auth.signOut();
+            }
+            setCurrentUser(null);
+            localStorage.removeItem('smartfarm_current_user');
+            sessionStorage.removeItem('smartfarm_current_user');
+            
+            // Clean up the URL hash so page refreshes don't re-trigger recovery mode
+            if (window.location.hash) {
+              window.history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+          }}
+        />
+      ) : currentUser === null ? (
         <Login onLogin={handleLogin} />
       ) : (
         <Dashboard user={currentUser} onLogout={handleLogout} />

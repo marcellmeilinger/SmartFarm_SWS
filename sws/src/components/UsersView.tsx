@@ -3,9 +3,10 @@ import type { UserProfile } from '../db/dbService';
 
 interface UsersViewProps {
   users: UserProfile[];
+  onUpdateUserRole?: (userId: string, newRole: 'admin' | 'operator') => Promise<void>;
 }
 
-export const UsersView: React.FC<UsersViewProps> = ({ users }) => {
+export const UsersView: React.FC<UsersViewProps> = ({ users, onUpdateUserRole }) => {
   return (
     <div className="details-card">
       <h2 className="details-card-title" style={{ marginBottom: '16px' }}>Felhasználók Kezelése</h2>
@@ -15,7 +16,7 @@ export const UsersView: React.FC<UsersViewProps> = ({ users }) => {
             <tr>
               <th>Név</th>
               <th>Email cím</th>
-              <th>Szerepkör</th>
+              <th>Szerepkör beállítása</th>
               <th>Státusz</th>
             </tr>
           </thead>
@@ -24,7 +25,30 @@ export const UsersView: React.FC<UsersViewProps> = ({ users }) => {
               <tr key={u.id}>
                 <td style={{ fontWeight: 600 }}>{u.name}</td>
                 <td>{u.email}</td>
-                <td>{u.role === 'admin' ? 'Raktárvezető (Admin)' : 'Kezelő'}</td>
+                <td>
+                  <select
+                    value={u.role}
+                    onChange={(e) => {
+                      if (onUpdateUserRole) {
+                        onUpdateUserRole(u.id, e.target.value as 'admin' | 'operator');
+                      }
+                    }}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border)',
+                      fontSize: '13px',
+                      backgroundColor: 'transparent',
+                      fontWeight: u.role === 'admin' ? '600' : 'normal',
+                      color: u.role === 'admin' ? 'var(--primary)' : 'var(--text-primary)',
+                      cursor: 'pointer',
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="operator">Kezelő (Munkatárs)</option>
+                    <option value="admin">Raktárvezető (Admin)</option>
+                  </select>
+                </td>
                 <td><span style={{ color: 'var(--success)', fontWeight: 600 }}>Aktív</span></td>
               </tr>
             ))}
