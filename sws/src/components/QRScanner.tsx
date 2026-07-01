@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { X, Camera, AlertCircle, Keyboard } from 'lucide-react';
+import { useTranslation } from '../context/LanguageContext';
 
 interface QRScannerProps {
   onScanSuccess: (materialId: string) => void;
@@ -8,6 +9,7 @@ interface QRScannerProps {
 }
 
 export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) => {
+  const { t } = useTranslation();
   const [scanError, setScanError] = useState<string | null>(null);
   const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
@@ -53,15 +55,15 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
           // Otherwise, if only one, choose the first.
           setSelectedCameraId(backCam ? backCam.id : devices[devices.length - 1].id);
         } else {
-          setScanError('Nem található kamera. Kérjük, használd a manuális kódbevitelt.');
+          setScanError(t('qrErrorNoCamera'));
           setShowManual(true);
         }
       } catch (err) {
         console.error('Error getting cameras:', err);
         if (!window.isSecureContext) {
-          setScanError('Kamera hozzáférés hiba: A böngészők biztonsági okokból csak biztonságos (HTTPS vagy localhost) kapcsolaton engedélyezik a kamerát. Használj HTTPS-t (pl. localtunnel/ngrok) vagy a manuális bevitelt!');
+          setScanError(t('qrErrorSecureContext'));
         } else {
-          setScanError('Hiba a kamerák keresése közben. Használhatod a manuális bevitelt.');
+          setScanError(t('qrErrorScanFailed'));
         }
         setShowManual(true);
       }
@@ -122,7 +124,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
       );
     } catch (err: any) {
       console.error('Camera start failed:', err);
-      setScanError('Nem sikerült elindítani a kamerát. Kérjük, engedélyezd a hozzáférést a böngésződben.');
+      setScanError(t('qrErrorCameraStart'));
       setIsScanning(false);
     }
   };
@@ -152,9 +154,9 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
         <div className="modal-header">
           <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Camera size={20} className="mobile-action-btn-icon" />
-            <span>QR-Kód beolvasása</span>
+            <span>{t('qrScanTitle')}</span>
           </div>
-          <button onClick={onClose} aria-label="Bezárás">
+          <button onClick={onClose} aria-label={t('qrClose')}>
             <X size={20} />
           </button>
         </div>
@@ -165,7 +167,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
             <>
               {cameras.length > 1 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <label htmlFor="cameraSelect" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Kamera:</label>
+                  <label htmlFor="cameraSelect" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('qrCameraLabel')}</label>
                   <select
                     id="cameraSelect"
                     className="form-select"
@@ -175,7 +177,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
                   >
                     {cameras.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.label || `Kamera ${cameras.indexOf(c) + 1}`}
+                        {c.label || `${t('qrCameraFallback')} ${cameras.indexOf(c) + 1}`}
                       </option>
                     ))}
                   </select>
@@ -207,7 +209,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
           {showManual && (
             <form onSubmit={handleManualSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div className="form-group">
-                <label className="form-label" htmlFor="manualId">Anyag Azonosító (pl. PRM-001)</label>
+                <label className="form-label" htmlFor="manualId">{t('qrManualLabel')}</label>
                 <div className="input-icon-wrapper">
                   <Keyboard className="input-icon" size={18} />
                   <input
@@ -222,7 +224,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
                 </div>
               </div>
               <button type="submit" className="btn-primary">
-                Azonosító Lekérése
+                {t('qrManualBtn')}
               </button>
             </form>
           )}
@@ -261,12 +263,12 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScanSuccess, onClose }) 
               {showManual ? (
                 <>
                   <Camera size={14} />
-                  <span>Vissza a kamerához</span>
+                  <span>{t('qrBackToCamera')}</span>
                 </>
               ) : (
                 <>
                   <Keyboard size={14} />
-                  <span>Kód megadása gépeléssel</span>
+                  <span>{t('qrTypeManual')}</span>
                 </>
               )}
             </button>

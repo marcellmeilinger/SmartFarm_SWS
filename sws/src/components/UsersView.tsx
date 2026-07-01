@@ -48,17 +48,17 @@ export const UsersView: React.FC<UsersViewProps> = ({ users, onUpdateUserRole })
                       outline: 'none',
                     }}
                   >
-                    <option value="operator">Kezelő (Munkatárs)</option>
-                    <option value="admin">Raktárvezető (Admin)</option>
+                    <option value="operator">{t('usrRoleOperator')}</option>
+                    <option value="admin">{t('usrRoleAdmin')}</option>
                   </select>
                 </td>
-                <td><span style={{ color: 'var(--success)', fontWeight: 600 }}>Aktív</span></td>
+                <td><span style={{ color: 'var(--success)', fontWeight: 600 }}>{t('usrStatusActive')}</span></td>
               </tr>
             ))}
             {users.length === 0 && (
               <tr>
                 <td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
-                  Nem található felhasználó.
+                  {t('usrNoUsers')}
                 </td>
               </tr>
             )}

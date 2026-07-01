@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Package, AlertCircle, ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { dbService } from '../db/dbService';
 import type { Material } from '../db/dbService';
+import { useTranslation } from '../context/LanguageContext';
 
 interface TransactionModalProps {
   material: Material;
@@ -16,6 +17,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   onClose,
   onSubmitSuccess
 }) => {
+  const { t } = useTranslation();
   const [transactionType, setTransactionType] = useState<'intake' | 'checkout'>('checkout');
   const [transactionQty, setTransactionQty] = useState<number>(1);
   const [transactionNotes, setTransactionNotes] = useState('');
@@ -58,7 +60,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
       onSubmitSuccess();
     } catch (err: any) {
-      setTransactionError(err.message || 'Tranzakció rögzítése sikertelen.');
+      setTransactionError(err.message || t('txErrorFailed'));
     }
   };
 
@@ -67,9 +69,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       <div className="modal-card" style={{ maxWidth: '440px' }}>
         <div className="modal-header">
           <div className="modal-title">
-            {material.id} — Készletmódosítás
+            {material.id} — {t('txTitleAdjustment')}
           </div>
-          <button onClick={onClose} aria-label="Bezárás">
+          <button onClick={onClose} aria-label={t('qrClose')}>
             <X size={20} />
           </button>
         </div>
@@ -101,10 +103,10 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <h4 style={{ fontSize: '14px', fontWeight: 700 }}>{material.name}</h4>
                 <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                  Kategória: {material.category} • Hely: {material.location}
+                  {t('colCategory')}: {t(`cat_${material.category}`)} • {t('txLocationLabel')}: {material.location}
                 </p>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--primary)', marginTop: '2px' }}>
-                  Jelenlegi készlet: {material.quantity} / {material.max_quantity} {material.unit}
+                  {t('txCurrentStock')}: {material.quantity} / {material.max_quantity} {material.unit}
                 </p>
               </div>
             </div>
@@ -128,7 +130,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             )}
 
             <div className="form-group">
-              <label className="form-label">Művelet Típusa</label>
+              <label className="form-label">{t('txTypeLabel')}</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   type="button"
@@ -143,7 +145,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   onClick={() => setTransactionType('checkout')}
                 >
                   <ArrowDownRight size={16} style={{ marginRight: '6px' }} />
-                  Kivétel (Kiadás)
+                  {t('txOptCheckout')}
                 </button>
                 <button
                   type="button"
@@ -158,13 +160,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   onClick={() => setTransactionType('intake')}
                 >
                   <ArrowUpRight size={16} style={{ marginRight: '6px' }} />
-                  Bevétel (Töltés)
+                  {t('txOptIntake')}
                 </button>
               </div>
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="txQty">Mennyiség ({material.unit})</label>
+              <label className="form-label" htmlFor="txQty">{t('txQtyLabel')} ({material.unit})</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
                   id="txQty"
@@ -194,12 +196,12 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" htmlFor="txNotes">Megjegyzés (opcionális)</label>
+              <label className="form-label" htmlFor="txNotes">{t('txNotesLabel')}</label>
               <input
                 id="txNotes"
                 type="text"
                 className="form-input-text"
-                placeholder="pl. Napi permetezéshez, megrendelés érkezett..."
+                placeholder={t('txNotesPlaceholder')}
                 value={transactionNotes}
                 onChange={(e) => setTransactionNotes(e.target.value)}
               />
@@ -208,7 +210,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
           <div className="modal-footer">
             <button type="button" className="btn-secondary" onClick={onClose}>
-              Mégsem
+              {t('cancel')}
             </button>
             <button
               type="submit"
@@ -219,7 +221,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 backgroundColor: transactionType === 'checkout' ? 'var(--danger)' : 'var(--primary)',
               }}
             >
-              Rögzítés
+              {t('txBtnSubmit')}
             </button>
           </div>
         </form>

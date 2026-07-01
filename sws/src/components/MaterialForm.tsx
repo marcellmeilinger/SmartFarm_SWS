@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Upload, AlertCircle, X, Sprout } from 'lucide-react';
 import type { Material } from '../db/dbService';
+import { useTranslation } from '../context/LanguageContext';
 
 interface MaterialFormProps {
   onSave: (material: Omit<Material, 'qr_code_url'>) => Promise<void>;
@@ -10,6 +11,7 @@ interface MaterialFormProps {
 }
 
 export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, existingIds, initialData = null }) => {
+  const { t } = useTranslation();
   const [id, setId] = useState(initialData ? initialData.id : '');
   const [name, setName] = useState(initialData ? initialData.name : '');
   const [quantity, setQuantity] = useState<number>(initialData ? initialData.quantity : 0);
@@ -93,7 +95,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
       }
     } catch (err) {
       console.error('Error starting photo camera:', err);
-      setCameraError('Nem sikerült hozzáférni a kamerához. Ellenőrizd a böngésző engedélyeket.');
+      setCameraError(t('mfErrorCamera'));
       setIsCameraActive(false);
     }
   };
@@ -147,22 +149,22 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
     // Validate ID format (e.g. PRM-001)
     const idRegex = /^[A-Z]{3}-\d{3}$/;
     if (!idRegex.test(id)) {
-      setErrorMessage('Az azonosítónak HHH-SZSZSZ formátumúnak kell lennie (pl. PRM-001)!');
+      setErrorMessage(t('mfErrorFormat'));
       return;
     }
 
     if (!initialData && existingIds.includes(id)) {
-      setErrorMessage(`Már létezik anyag ezzel az azonosítóval: ${id}`);
+      setErrorMessage(`${t('mfErrorExists')}${id}`);
       return;
     }
 
     if (quantity < 0 || maxQuantity <= 0) {
-      setErrorMessage('A mennyiségeknek nagyobbnak kell lenniük 0-nál.');
+      setErrorMessage(t('mfErrorQtyPositive'));
       return;
     }
 
     if (quantity > maxQuantity) {
-      setErrorMessage('Az aktuális mennyiség nem lehet nagyobb, mint a maximális készlet.');
+      setErrorMessage(t('mfErrorQtyMax'));
       return;
     }
 
@@ -179,7 +181,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
         image_url: imageUrl,
       });
     } catch (err: any) {
-      setErrorMessage(err.message || 'Hiba történt az anyag mentése során.');
+      setErrorMessage(err.message || t('mfErrorSave'));
       setIsSubmitting(false);
     }
   };
@@ -190,9 +192,9 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
         <div className="modal-header">
           <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Sprout size={20} className="mobile-action-btn-icon" />
-            <span>{initialData ? 'Anyag szerkesztése' : 'Új anyag felvétele'}</span>
+            <span>{initialData ? t('mfEditTitle') : t('mfNewTitle')}</span>
           </div>
-          <button onClick={onCancel} aria-label="Bezárás">
+          <button onClick={onCancel} aria-label={t('qrClose')}>
             <X size={20} />
           </button>
         </div>
@@ -220,24 +222,24 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
 
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label" htmlFor="catSelect">Kategória</label>
+                <label className="form-label" htmlFor="catSelect">{t('colCategory')}</label>
                 <select
                   id="catSelect"
                   className="form-select"
                   value={category}
                   onChange={(e) => handleCategoryChange(e.target.value)}
                 >
-                  <option value="Permetszerek">Permetszerek</option>
-                  <option value="Műtrágyák">Műtrágyák</option>
-                  <option value="Vetőmagok">Vetőmagok</option>
-                  <option value="Tápok">Tápok</option>
-                  <option value="Adalékanyagok">Adalékanyagok</option>
-                  <option value="Egyéb">Egyéb</option>
+                  <option value="Permetszerek">{t('cat_Permetszerek')}</option>
+                  <option value="Műtrágyák">{t('cat_Műtrágyák')}</option>
+                  <option value="Vetőmagok">{t('cat_Vetőmagok')}</option>
+                  <option value="Tápok">{t('cat_Tápok')}</option>
+                  <option value="Adalékanyagok">{t('cat_Adalékanyagok')}</option>
+                  <option value="Egyéb">{t('cat_Egyéb')}</option>
                 </select>
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="mId">Azonosító</label>
+                <label className="form-label" htmlFor="mId">{t('mfLabelId')}</label>
                 <input
                   id="mId"
                   type="text"
@@ -245,7 +247,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
                   disabled={!!initialData}
                   style={{ opacity: initialData ? 0.7 : 1, cursor: initialData ? 'not-allowed' : 'text' }}
                   className="form-input-text"
-                  placeholder="pl. PRM-001"
+                  placeholder={t('mfPlaceholderId')}
                   value={id}
                   onChange={(e) => setId(e.target.value.toUpperCase())}
                 />
@@ -253,13 +255,13 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="mName">Anyag Megnevezése</label>
+              <label className="form-label" htmlFor="mName">{t('mfLabelName')}</label>
               <input
                 id="mName"
                 type="text"
                 required
                 className="form-input-text"
-                placeholder="pl. Permetszer A"
+                placeholder={t('mfPlaceholderName')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -267,7 +269,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
 
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label" htmlFor="mQty">Kezdő Mennyiség</label>
+                <label className="form-label" htmlFor="mQty">{t('mfLabelStartQty')}</label>
                 <input
                   id="mQty"
                   type="number"
@@ -281,7 +283,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="mMaxQty">Maximális Kapacitás</label>
+                <label className="form-label" htmlFor="mMaxQty">{t('mfLabelMaxCap')}</label>
                 <input
                   id="mMaxQty"
                   type="number"
@@ -297,27 +299,27 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
 
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label" htmlFor="mUnit">Mértékegység</label>
+                <label className="form-label" htmlFor="mUnit">{t('colUnit')}</label>
                 <select
                   id="mUnit"
                   className="form-select"
                   value={unit}
                   onChange={(e) => setUnit(e.target.value)}
                 >
-                  <option value="db">Darab (db)</option>
-                  <option value="kg">Kilogramm (kg)</option>
-                  <option value="l">Liter (l)</option>
+                  <option value="db">{t('mfUnitPcs')}</option>
+                  <option value="kg">{t('mfUnitKg')}</option>
+                  <option value="l">{t('mfUnitL')}</option>
                 </select>
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="mLoc">Raktárhely (Szekció-Részleg-Polc)</label>
+                <label className="form-label" htmlFor="mLoc">{t('mfLabelLoc')}</label>
                 <input
                   id="mLoc"
                   type="text"
                   required
                   className="form-input-text"
-                  placeholder="pl. A1-01-03"
+                  placeholder={t('mfPlaceholderLoc')}
                   value={location}
                   onChange={(e) => setLocation(e.target.value.toUpperCase())}
                 />
@@ -326,7 +328,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
 
             {/* Photo Section */}
             <div className="form-group">
-              <label className="form-label">Termékkép készítése vagy feltöltése</label>
+              <label className="form-label">{t('mfLabelImage')}</label>
               
               {isCameraActive ? (
                 <div>
@@ -338,26 +340,26 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
                         className="btn-primary"
                         style={{ borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         onClick={capturePhoto}
-                        aria-label="Fénykép készítése"
+                        aria-label={t('mfBtnCapture')}
                       >
                         <Camera size={24} />
                       </button>
                     </div>
                   </div>
                   <button type="button" className="btn-secondary" onClick={stopCamera} style={{ width: '100%' }}>
-                    Mégsem készít képet
+                    {t('mfBtnCancelCapture')}
                   </button>
                 </div>
               ) : imageUrl ? (
                 <div>
-                  <img src={imageUrl} alt="Termék előnézet" className="captured-image-preview" />
+                  <img src={imageUrl} alt={t('mfAltPreview')} className="captured-image-preview" />
                   <div className="captured-preview-actions">
                     <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={startCamera}>
                       <Camera size={16} />
-                      <span>Kép cseréje</span>
+                      <span>{t('mfBtnChangeImage')}</span>
                     </button>
                     <button type="button" className="btn-secondary" style={{ flex: 1, borderColor: '#ef4444', color: '#ef4444' }} onClick={() => setImageUrl('')}>
-                      <span>Kép törlése</span>
+                      <span>{t('mfBtnDeleteImage')}</span>
                     </button>
                   </div>
                 </div>
@@ -380,7 +382,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
                     onClick={startCamera}
                   >
                     <Camera size={20} />
-                    <span style={{ fontSize: '12px' }}>Fotózás kamerával</span>
+                    <span style={{ fontSize: '12px' }}>{t('mfBtnTakePhoto')}</span>
                   </button>
                   
                   <label
@@ -399,7 +401,7 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
                     }}
                   >
                     <Upload size={20} />
-                    <span style={{ fontSize: '12px' }}>Kép feltöltése</span>
+                    <span style={{ fontSize: '12px' }}>{t('mfBtnUploadPhoto')}</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -422,11 +424,10 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
 
           <div className="modal-footer">
             <button type="button" className="btn-secondary" onClick={onCancel} disabled={isSubmitting}>
-              Mégsem
+              {t('cancel')}
             </button>
             <button type="submit" className="btn-primary" style={{ width: 'auto', paddingInline: '24px' }} disabled={isSubmitting}>
-              {isSubmitting ? 'Mentés...' : (initialData ? 'Módosítások mentése' : 'Termék mentése')}
-            </button>
+              {isSubmitting ? t('saving') : (initialData ? t('mfBtnSaveEdit') : t('mfBtnSaveNew'))}</button>
           </div>
         </form>
       </div>

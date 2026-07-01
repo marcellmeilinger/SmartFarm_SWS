@@ -924,14 +924,15 @@ input:focus, select:focus, textarea:focus {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  margin-top: 12px;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 13.5px;
 }
 
 .legend-label-wrapper {
@@ -1383,6 +1384,19 @@ input:focus, select:focus, textarea:focus {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   margin-bottom: 16px;
+}
+
+.form-row .form-group {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin-bottom: 0;
+}
+
+.form-row .form-group > select,
+.form-row .form-group > input,
+.form-row .form-group > .input-icon-wrapper {
+  margin-top: auto;
 }
 
 .form-input-text, .form-select {

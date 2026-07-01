@@ -55,12 +55,12 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
             onChange={(e) => setSelectedCategory(e.target.value)}
           >
             <option value="All">{t('matAll')}</option>
-            <option value="Permetszerek">Permetszerek</option>
-            <option value="Műtrágyák">Műtrágyák</option>
-            <option value="Vetőmagok">Vetőmagok</option>
-            <option value="Tápok">Tápok</option>
-            <option value="Adalékanyagok">Adalékanyagok</option>
-            <option value="Egyéb">Egyéb</option>
+            <option value="Permetszerek">{t('cat_Permetszerek')}</option>
+            <option value="Műtrágyák">{t('cat_Műtrágyák')}</option>
+            <option value="Vetőmagok">{t('cat_Vetőmagok')}</option>
+            <option value="Tápok">{t('cat_Tápok')}</option>
+            <option value="Adalékanyagok">{t('cat_Adalékanyagok')}</option>
+            <option value="Egyéb">{t('cat_Egyéb')}</option>
           </select>
         </div>
 
@@ -165,7 +165,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                 }}
                 onClick={() => setSelectedCategory(cat)}
               >
-                {cat === 'All' ? t('matAll') : cat}
+                {cat === 'All' ? t('matAll') : t(`cat_${cat}`)}
               </button>
             ))}
           </div>
@@ -177,10 +177,10 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
           <thead>
             <tr>
               <th>{t('statName')}</th>
-              <th>Kategória</th>
+              <th>{t('colCategory')}</th>
               <th>{t('statLocation')}</th>
               <th>{t('statStock')} / {t('statLevel')}</th>
-              <th>Mértékegység</th>
+              <th>{t('colUnit')}</th>
               <th style={{ textAlign: 'right' }}>{t('matActions')}</th>
             </tr>
           </thead>
@@ -205,7 +205,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                       </div>
                     </div>
                   </td>
-                  <td>{m.category}</td>
+                  <td>{t(`cat_${m.category}`)}</td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-secondary)' }}>
                       <MapPin size={14} />

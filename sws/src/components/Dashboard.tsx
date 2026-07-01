@@ -29,7 +29,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpdate }) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   // Navigation states
   const [activeView, setActiveView] = useState<'dashboard' | 'materials' | 'movements' | 'qr-codes' | 'users' | 'settings'>('dashboard');
   const [mobileTab, setMobileTab] = useState<'home' | 'search' | 'qr' | 'movements' | 'profile'>('home');
@@ -82,18 +82,73 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 1) return 'Épp most';
-    if (diffMins < 60) return `${diffMins} perce`;
-    if (diffHours < 24) {
-      if (date.getDate() === now.getDate()) {
-        return `Ma ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    const hoursStr = String(date.getHours()).padStart(2, '0');
+    const minutesStr = String(date.getMinutes()).padStart(2, '0');
+
+    if (language === 'hu') {
+      if (diffMins < 1) return 'Épp most';
+      if (diffMins < 60) return `${diffMins} perce`;
+      if (diffHours < 24) {
+        if (date.getDate() === now.getDate()) {
+          return `Ma ${hoursStr}:${minutesStr}`;
+        }
+        return `Tegnap ${hoursStr}:${minutesStr}`;
       }
-      return `Tegnap ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+      if (diffDays === 1) {
+        return `Tegnap ${hoursStr}:${minutesStr}`;
+      }
+      return `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(2, '0')}. ${String(date.getDate()).padStart(2, '0')}. ${hoursStr}:${minutesStr}`;
+    } else if (language === 'de') {
+      if (diffMins < 1) return 'Gerade eben';
+      if (diffMins < 60) return `vor ${diffMins} Min.`;
+      if (diffHours < 24) {
+        if (date.getDate() === now.getDate()) {
+          return `Heute ${hoursStr}:${minutesStr}`;
+        }
+        return `Gestern ${hoursStr}:${minutesStr}`;
+      }
+      if (diffDays === 1) {
+        return `Gestern ${hoursStr}:${minutesStr}`;
+      }
+      return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()} ${hoursStr}:${minutesStr}`;
+    } else {
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) {
+        if (date.getDate() === now.getDate()) {
+          return `Today ${hoursStr}:${minutesStr}`;
+        }
+        return `Yesterday ${hoursStr}:${minutesStr}`;
+      }
+      if (diffDays === 1) {
+        return `Yesterday ${hoursStr}:${minutesStr}`;
+      }
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${hoursStr}:${minutesStr}`;
     }
-    if (diffDays === 1) {
-      return `Tegnap ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  };
+
+  // Render notification text helper
+  const renderNotificationText = (user_name: string, type: 'intake' | 'checkout', quantity: number, material_name: string) => {
+    const qty = Math.abs(quantity);
+    if (language === 'hu') {
+      return (
+        <>
+          <strong>{user_name}</strong> {type === 'intake' ? 'bevételezett' : 'kiadott'} {qty} db <strong>{material_name}</strong> terméket.
+        </>
+      );
+    } else if (language === 'de') {
+      return (
+        <>
+          <strong>{user_name}</strong> hat {qty} Stk. <strong>{material_name}</strong> {type === 'intake' ? 'eingelagert' : 'ausgelagert'}.
+        </>
+      );
+    } else {
+      return (
+        <>
+          <strong>{user_name}</strong> {type === 'intake' ? 'stocked in' : 'checked out'} {qty} pcs of <strong>{material_name}</strong>.
+        </>
+      );
     }
-    return `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(2, '0')}. ${String(date.getDate()).padStart(2, '0')}. ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   };
 
   // Close dropdown on click outside
@@ -448,7 +503,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               <div className="notification-bell-container" ref={desktopNotificationsRef}>
                 <button
                   className="icon-btn-badge"
-                  aria-label="Értesítések"
+                  aria-label={t('notifAriaLabel')}
                   onClick={() => {
                     const nextShow = !showNotifications;
                     setShowNotifications(nextShow);
@@ -464,36 +519,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 {showNotifications && (
                   <div className="notifications-dropdown">
                     <div className="notifications-dropdown-header">
-                      <h3>Legutóbbi készletmozgások</h3>
+                      <h3>{t('notifTitle')}</h3>
                     </div>
                     <div className="notifications-dropdown-content">
                       {transactions.length === 0 ? (
                         <div className="notifications-empty">
-                          Még nem történt készletmozgás.
+                          {t('notifEmpty')}
                         </div>
                       ) : (
                         [...transactions]
                           .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
                           .slice(0, 5)
-                          .map((t) => (
+                          .map((tx) => (
                             <div
-                              key={t.id}
+                              key={tx.id}
                               className="notification-item"
                               onClick={() => {
                                 setActiveView('movements');
                                 setShowNotifications(false);
                               }}
                             >
-                              <div className={`notification-icon-wrapper ${t.type}`}>
-                                {t.type === 'intake' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                              <div className={`notification-icon-wrapper ${tx.type}`}>
+                                {tx.type === 'intake' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
                               </div>
                               <div className="notification-details">
                                 <span className="notification-text">
-                                  <strong>{t.user_name}</strong> {t.type === 'intake' ? 'bevételezett' : 'kiadott'} {Math.abs(t.quantity)} db <strong>{t.material_name}</strong> terméket.
+                                  {renderNotificationText(tx.user_name, tx.type, tx.quantity, tx.material_name)}
                                 </span>
                                 <div className="notification-meta">
-                                  <span className="notification-time">{formatRelativeTime(t.timestamp)}</span>
-                                  {t.notes && <span className="notification-notes" title={t.notes}>• {t.notes}</span>}
+                                  <span className="notification-time">{formatRelativeTime(tx.timestamp)}</span>
+                                  {tx.notes && <span className="notification-notes" title={tx.notes}>• {tx.notes}</span>}
                                 </div>
                               </div>
                             </div>
@@ -507,7 +562,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                           setShowNotifications(false);
                         }}
                       >
-                        Összes mozgás megtekintése
+                        {t('notifAll')}
                       </button>
                     </div>
                   </div>
@@ -618,6 +673,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                     }
                   }}
                   style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  aria-label={t('notifAriaLabel')}
                 >
                   <Bell size={22} />
                   {unreadCount > 0 && <span className="badge-dot" style={{ top: '-2px', right: '-2px' }}>{unreadCount}</span>}
@@ -626,36 +682,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 {showNotifications && (
                   <div className="notifications-dropdown mobile">
                     <div className="notifications-dropdown-header">
-                      <h3>Legutóbbi készletmozgások</h3>
+                      <h3>{t('notifTitle')}</h3>
                     </div>
                     <div className="notifications-dropdown-content">
                       {transactions.length === 0 ? (
                         <div className="notifications-empty">
-                          Még nem történt készletmozgás.
+                          {t('notifEmpty')}
                         </div>
                       ) : (
                         [...transactions]
                           .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
                           .slice(0, 5)
-                          .map((t) => (
+                          .map((tx) => (
                             <div
-                              key={t.id}
+                              key={tx.id}
                               className="notification-item"
                               onClick={() => {
                                 setMobileTab('movements');
                                 setShowNotifications(false);
                               }}
                             >
-                              <div className={`notification-icon-wrapper ${t.type}`}>
-                                {t.type === 'intake' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                              <div className={`notification-icon-wrapper ${tx.type}`}>
+                                {tx.type === 'intake' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
                               </div>
                               <div className="notification-details">
                                 <span className="notification-text">
-                                  <strong>{t.user_name}</strong> {t.type === 'intake' ? 'bevételezett' : 'kiadott'} {Math.abs(t.quantity)} db <strong>{t.material_name}</strong> terméket.
+                                  {renderNotificationText(tx.user_name, tx.type, tx.quantity, tx.material_name)}
                                 </span>
                                 <div className="notification-meta">
-                                  <span className="notification-time">{formatRelativeTime(t.timestamp)}</span>
-                                  {t.notes && <span className="notification-notes" title={t.notes}>• {t.notes}</span>}
+                                  <span className="notification-time">{formatRelativeTime(tx.timestamp)}</span>
+                                  {tx.notes && <span className="notification-notes" title={tx.notes}>• {tx.notes}</span>}
                                 </div>
                               </div>
                             </div>
@@ -669,7 +725,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                           setShowNotifications(false);
                         }}
                       >
-                        Összes mozgás megtekintése
+                        {t('notifAll')}
                       </button>
                     </div>
                   </div>
@@ -917,9 +973,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               {toast.type === 'intake' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
             </div>
             <div className="toast-content">
-              <span className="toast-title">Készletmozgás történt!</span>
+              <span className="toast-title">{t('toastTitle')}</span>
               <span className="toast-desc">
-                <strong>{toast.user_name}</strong> {toast.type === 'intake' ? 'bevételezett' : 'kiadott'} {Math.abs(toast.quantity)} db <strong>{toast.material_name}</strong> terméket.
+                {renderNotificationText(toast.user_name, toast.type, toast.quantity, toast.material_name)}
               </span>
             </div>
           </>

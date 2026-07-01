@@ -37,6 +37,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   onMobileStockCardClick
 }) => {
   const { t, language } = useTranslation();
+  const [selectedNotes, setSelectedNotes] = React.useState<string | null>(null);
   
   const totalMaterialsCount = materials.length;
 
@@ -103,17 +104,17 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           </div>
         </div>
 
-        <div className="category-legend">
+        <div className="legend-list">
           {categoriesList.map((cat) => {
             const count = categoryCounts[cat] || 0;
             const percent = totalMaterialsCount > 0 ? Math.round((count / totalMaterialsCount) * 100) : 0;
             return (
               <div key={cat} className="legend-item">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div className="legend-dot" style={{ backgroundColor: categoryColors[cat] }} />
-                  <span className="legend-name">{cat}</span>
+                <div className="legend-label-wrapper">
+                  <div className="legend-color-dot" style={{ backgroundColor: categoryColors[cat] }} />
+                  <span className="legend-name">{t(`cat_${cat}`)}</span>
                 </div>
-                <span className="legend-val">{count} db ({percent}%)</span>
+                <span className="legend-val">{count} {t('unitDb')} ({percent}%)</span>
               </div>
             );
           })}
@@ -432,17 +433,37 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
           <div className="movement-list" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             {transactions.slice(0, 4).map((tItem) => (
-              <div key={tItem.id} className="movement-item" style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
-                <div className="movement-left">
-                  <div className={`movement-icon-wrapper ${tItem.type}`}>
+              <div key={tItem.id} className="movement-item" style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
+                <div className="movement-left" style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                  <div className={`movement-icon-wrapper ${tItem.type}`} style={{ flexShrink: 0 }}>
                     {tItem.type === 'intake' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
                   </div>
-                  <div className="movement-info">
-                    <h4>{tItem.material_name} <span className="material-id-badge" style={{ fontSize: '10px' }}>{tItem.material_id}</span></h4>
-                    <p>{tItem.user_name} • {tItem.notes || '—'}</p>
+                  <div className="movement-info" style={{ minWidth: 0, flex: 1 }}>
+                    <h4 style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      {tItem.material_name} <span className="material-id-badge" style={{ fontSize: '10px' }}>{tItem.material_id}</span>
+                    </h4>
+                    <p style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      {tItem.user_name} •{' '}
+                      {tItem.notes ? (
+                        tItem.notes.length > 25 ? (
+                          <span 
+                            style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--primary)', fontStyle: 'italic' }} 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedNotes(tItem.notes || null);
+                            }}
+                            title={tItem.notes}
+                          >
+                            {tItem.notes.substring(0, 22)}...
+                          </span>
+                        ) : (
+                          <span style={{ fontStyle: 'italic' }}>{tItem.notes}</span>
+                        )
+                      ) : '—'}
+                    </p>
                   </div>
                 </div>
-                <div className="movement-right">
+                <div className="movement-right" style={{ flexShrink: 0, marginLeft: '12px' }}>
                   <span className={`movement-qty ${tItem.type}`}>
                     {tItem.quantity > 0 ? `+${tItem.quantity}` : tItem.quantity}
                   </span>
@@ -455,6 +476,38 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Modal for viewing long notes */}
+      {selectedNotes && (
+        <div className="modal-overlay" style={{ zIndex: 1000 }} onClick={() => setSelectedNotes(null)}>
+          <div className="modal-card" style={{ maxWidth: '400px', width: '90%' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title" style={{ fontSize: '16px', fontWeight: 700 }}>
+                {t('movColNotes') || 'Megjegyzés'}
+              </h3>
+              <button 
+                onClick={() => setSelectedNotes(null)} 
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-secondary)' }}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="modal-body" style={{ padding: '20px', textAlign: 'left', wordBreak: 'break-word', color: 'var(--text-primary)', fontSize: '14px', lineHeight: '1.6' }}>
+              {selectedNotes}
+            </div>
+            <div className="modal-footer" style={{ padding: '12px 20px', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border)' }}>
+              <button 
+                type="button" 
+                className="btn-primary" 
+                style={{ padding: '8px 16px', fontSize: '13px', width: 'auto' }} 
+                onClick={() => setSelectedNotes(null)}
+              >
+                {t('qrClose')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
