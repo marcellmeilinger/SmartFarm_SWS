@@ -9,8 +9,39 @@ export const isSupabaseConfigured =
   supabaseAnonKey.trim() !== '' &&
   !supabaseUrl.includes('your-supabase-project-id');
 
+// Custom storage wrapper to respect the 'Remember me' option
+const dynamicStorage = {
+  getItem: (key: string): string | null => {
+    const rememberMe = localStorage.getItem('smartfarm_remember_me') !== 'false';
+    if (rememberMe) {
+      return localStorage.getItem(key);
+    } else {
+      return sessionStorage.getItem(key) || localStorage.getItem(key);
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    const rememberMe = localStorage.getItem('smartfarm_remember_me') !== 'false';
+    if (rememberMe) {
+      localStorage.setItem(key, value);
+      sessionStorage.removeItem(key);
+    } else {
+      sessionStorage.setItem(key, value);
+      localStorage.removeItem(key);
+    }
+  },
+  removeItem: (key: string): void => {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+  }
+};
+
 export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        storage: dynamicStorage,
+        persistSession: true
+      }
+    })
   : null;
 
 if (!isSupabaseConfigured) {

@@ -4,7 +4,7 @@ import {
   Plus, ArrowLeftRight, QrCode, Users as UsersIcon,
   Settings as SettingsIcon, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
-import { dbService, getStockStatus } from '../db/dbService';
+import { dbService } from '../db/dbService';
 import type { Material, Transaction, UserProfile } from '../db/dbService';
 import { supabase, isSupabaseConfigured } from '../db/supabaseClient';
 import { MaterialForm } from './MaterialForm';
@@ -101,7 +101,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     const handleClickOutside = (event: MouseEvent) => {
       const desktopClickedInside = desktopNotificationsRef.current && desktopNotificationsRef.current.contains(event.target as Node);
       const mobileClickedInside = mobileNotificationsRef.current && mobileNotificationsRef.current.contains(event.target as Node);
-      
+
       if (!desktopClickedInside && !mobileClickedInside) {
         setShowNotifications(false);
       }
@@ -129,7 +129,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
 
     // Set content first (container is already in DOM)
     setToast(tx);
-    
+
     // Add visible class in next frame for transition on enter
     setTimeout(() => {
       setToastVisible(true);
@@ -307,9 +307,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     setDeleteConfirmMaterial(material);
   };
 
-  // Stats calculation for notifications badge
-  const lowStockCount = materials.filter(m => getStockStatus(m.quantity, m.max_quantity) !== 'green').length;
-  
+  // Handle User Role Update
+  const handleUpdateUserRole = async (userId: string, newRole: 'admin' | 'operator') => {
+    try {
+      await dbService.updateUserProfileRole(userId, newRole);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Hiba történt a jogosultság módosítása során.');
+    }
+  };
+
   // Calculate unread transactions for the bell badge
   const unreadCount = transactions.filter(
     (t) => new Date(t.timestamp).getTime() > new Date(lastReadTimestamp).getTime()
@@ -371,13 +378,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               <QrCode size={18} />
               <span>{t('navQrCodes')}</span>
             </button>
-            <button
-              className={`nav-item ${activeView === 'users' ? 'active' : ''}`}
-              onClick={() => setActiveView('users')}
-            >
-              <UsersIcon size={18} />
-              <span>{t('navUsers')}</span>
-            </button>
+            {user.role === 'admin' && (
+              <button
+                className={`nav-item ${activeView === 'users' ? 'active' : ''}`}
+                onClick={() => setActiveView('users')}
+              >
+                <UsersIcon size={18} />
+                <span>{t('navUsers')}</span>
+              </button>
+            )}
             <button
               className={`nav-item ${activeView === 'settings' ? 'active' : ''}`}
               onClick={() => setActiveView('settings')}
@@ -567,8 +576,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 onPrintQrClick={setViewingQrMaterial}
               />
             )}
-            {activeView === 'users' && (
-              <UsersView users={users} />
+            {activeView === 'users' && user.role === 'admin' && (
+              <UsersView users={users} onUpdateUserRole={handleUpdateUserRole} />
             )}
             {activeView === 'settings' && (
               <SettingsView isMock={isMock} user={user} onUserUpdate={onUserUpdate} />
@@ -890,8 +899,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
       )}
 
       {/* Realtime Toast Notification */}
-      <div 
-        className={`realtime-toast ${toast ? toast.type : ''} ${toast && toastVisible ? 'visible' : 'exit'}`} 
+      <div
+        className={`realtime-toast ${toast ? toast.type : ''} ${toast && toastVisible ? 'visible' : 'exit'}`}
         onClick={() => {
           if (!toast) return;
           if (isMobile) {

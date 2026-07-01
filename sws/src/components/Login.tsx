@@ -5,22 +5,37 @@ import { useTranslation } from '../context/LanguageContext';
 
 interface LoginProps {
   onLogin: (user: { name: string; email: string; role: 'admin' | 'operator' }) => void;
+  initialView?: 'login' | 'register' | 'forgot' | 'reset-password';
+  onPasswordResetComplete?: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin }) => {
+export const Login: React.FC<LoginProps> = ({
+  onLogin,
+  initialView = 'login',
+  onPasswordResetComplete
+}) => {
   const { t, language } = useTranslation();
-  const [email, setEmail] = useState('kovacs.gabor@ceg.hu');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState<'admin' | 'operator'>('admin');
-  const [rememberMe, setRememberMe] = useState(true);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const role: 'admin' | 'operator' = 'operator';
+  const [rememberMe, setRememberMe] = useState(() => {
+    return localStorage.getItem('smartfarm_remember_me') !== 'false';
+  });
 
   // New state variables for registration and state management
-  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [authView, setAuthView] = useState<'login' | 'register' | 'forgot' | 'reset-password'>(initialView);
+  const [resetEmailTarget, setResetEmailTarget] = useState('');
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    setAuthView(initialView);
+  }, [initialView]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,11 +43,38 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setSuccessMessage(null);
     setLoading(true);
 
+    // Save rememberMe preference
+    localStorage.setItem('smartfarm_remember_me', rememberMe ? 'true' : 'false');
+
+    let loginEmail = email.trim();
+    let loginPassword = password;
+
+    if (!loginEmail) {
+      if (!isSupabaseConfigured) {
+        loginEmail = 'kezelo.janos@ceg.hu';
+        loginPassword = loginPassword || 'password123';
+      } else {
+        setError('Kérjük, add meg az e-mail címedet!');
+        setLoading(false);
+        return;
+      }
+    }
+
+    if (!loginPassword) {
+      if (!isSupabaseConfigured) {
+        loginPassword = 'password123';
+      } else {
+        setError('Kérjük, add meg a jelszavadat!');
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       if (isSupabaseConfigured) {
         const { error: authError } = await supabase!.auth.signInWithPassword({
-          email,
-          password,
+          email: loginEmail,
+          password: loginPassword,
         });
 
         if (authError) {
@@ -48,7 +90,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         // Offline / Mock Mode Login
         const savedUsersJson = localStorage.getItem('smartfarm_users');
         const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
-        const localUser = savedUsers.find((u: any) => u.email === email && u.password === password);
+        const localUser = savedUsers.find((u: any) => u.email === loginEmail && u.password === loginPassword);
 
         if (localUser) {
           onLogin({
@@ -58,10 +100,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           });
         } else {
           // Fallback to default test accounts
-          if (email === 'kovacs.gabor@ceg.hu' && password === 'password123') {
-            onLogin({ name: 'Kovács Gábor', email, role: 'admin' });
-          } else if (email === 'kezelo.janos@ceg.hu' && password === 'password123') {
-            onLogin({ name: 'Kezelő János', email, role: 'operator' });
+          if (loginEmail === 'kovacs.gabor@ceg.hu' && loginPassword === 'password123') {
+            onLogin({ name: 'Kovács Gábor', email: loginEmail, role: 'admin' });
+          } else if (loginEmail === 'kezelo.janos@ceg.hu' && loginPassword === 'password123') {
+            onLogin({ name: 'Kezelő János', email: loginEmail, role: 'operator' });
           } else {
             throw new Error(
               'Hibás e-mail cím vagy jelszó. Offline módban használd a teszt fiókokat vagy regisztrálj újat!'
@@ -128,7 +170,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             setSuccessMessage(
               'Sikeres regisztráció! Kérjük, ellenőrizd az e-mail fiókodat a megerősítő linkért.'
             );
-            setIsRegisterMode(false);
+            setAuthView('login');
             setFullName('');
             setPassword('');
           }
@@ -153,12 +195,158 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         localStorage.setItem('smartfarm_users', JSON.stringify(savedUsers));
 
         setSuccessMessage('Sikeres regisztráció offline módban! Most már bejelentkezhetsz.');
-        setIsRegisterMode(false);
+        setAuthView('login');
         setFullName('');
         setPassword('');
       }
     } catch (err: any) {
       setError(err.message || 'Hiba történt a regisztráció során.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMessage(null);
+    setLoading(true);
+
+    if (!email) {
+      setError('Kérjük, add meg az e-mail címedet!');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      if (isSupabaseConfigured) {
+        const { error: resetError } = await supabase!.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}`,
+        });
+
+        if (resetError) {
+          throw new Error(resetError.message);
+        }
+
+        setSuccessMessage(
+          'A jelszó-visszaállítási linket elküldtük az e-mail címedre! Kérjük, ellenőrizd a bejövő leveleidet.'
+        );
+      } else {
+        // Offline / Mock Mode Forgot Password
+        const savedUsersJson = localStorage.getItem('smartfarm_users');
+        const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
+
+        // Check if user exists (either in local store or default fallback test accounts)
+        const isDefaultAdmin = email === 'kovacs.gabor@ceg.hu';
+        const isDefaultOperator = email === 'kezelo.janos@ceg.hu';
+        const userExists = savedUsers.some((u: any) => u.email === email) || isDefaultAdmin || isDefaultOperator;
+
+        if (!userExists) {
+          throw new Error(
+            'Ez az e-mail cím nincs regisztrálva a rendszerben!'
+          );
+        }
+
+        // Simulating the email redirect by transitioning directly to the reset-password view
+        setResetEmailTarget(email);
+        setSuccessMessage(
+          'Offline mód: Az e-mail küldést szimuláltuk. Azonosítás sikeres! Most megadhatod az új jelszót.'
+        );
+        setPassword('');
+        setConfirmPassword('');
+        setAuthView('reset-password');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Hiba történt a jelszó-visszaállítás kezdeményezése során.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMessage(null);
+    setLoading(true);
+
+    if (!password) {
+      setError('Kérjük, add meg az új jelszót!');
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('A két jelszó nem egyezik meg!');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      if (isSupabaseConfigured) {
+        const { error: resetError } = await supabase!.auth.updateUser({
+          password: password,
+        });
+
+        if (resetError) {
+          throw new Error(resetError.message);
+        }
+
+        setSuccessMessage(
+          'A jelszavad sikeresen megváltozott! Jelentkezz be újra az új jelszóval.'
+        );
+
+        if (onPasswordResetComplete) {
+          setTimeout(() => {
+            onPasswordResetComplete();
+          }, 3000);
+        } else {
+          setTimeout(() => {
+            setAuthView('login');
+            setSuccessMessage(null);
+          }, 3000);
+        }
+      } else {
+        // Offline / Mock Mode Reset Password
+        const targetEmail = resetEmailTarget || email;
+        if (!targetEmail) {
+          throw new Error('Hiba történt: nincs megadva azonosított e-mail cím.');
+        }
+
+        const savedUsersJson = localStorage.getItem('smartfarm_users');
+        const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
+
+        const userIndex = savedUsers.findIndex((u: any) => u.email === targetEmail);
+
+        if (userIndex !== -1) {
+          savedUsers[userIndex].password = password;
+          localStorage.setItem('smartfarm_users', JSON.stringify(savedUsers));
+        } else {
+          // If it was one of the default mock accounts, we can create a record for it in local storage users
+          let newMockUser = {
+            name: targetEmail === 'kovacs.gabor@ceg.hu' ? 'Kovács Gábor' : 'Kezelő János',
+            email: targetEmail,
+            password: password,
+            role: targetEmail === 'kovacs.gabor@ceg.hu' ? 'admin' : 'operator',
+          };
+          savedUsers.push(newMockUser);
+          localStorage.setItem('smartfarm_users', JSON.stringify(savedUsers));
+        }
+
+        setSuccessMessage(
+          'Offline mód: A jelszó sikeresen megváltozott! Most már bejelentkezhetsz az új jelszóval.'
+        );
+
+        setPassword('');
+        setConfirmPassword('');
+        setResetEmailTarget('');
+
+        setTimeout(() => {
+          setAuthView('login');
+          setSuccessMessage(null);
+        }, 2500);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Hiba történt a jelszó módosítása során.');
     } finally {
       setLoading(false);
     }
@@ -173,7 +361,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <h1 className="brand-name">SmartFarm</h1>
       </div>
 
-      {!isRegisterMode ? (
+      {authView === 'login' && (
         <div className="login-card">
           <h2 className="login-title">Bejelentkezés</h2>
           <p className="login-subtitle">Lépj be a SmartFarm raktárkezelő rendszerébe</p>
@@ -221,48 +409,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           )}
 
           <form onSubmit={handleSubmit}>
-            <div className="form-group" style={{ marginBottom: '14px' }}>
-              <label className="form-label">Teszt Szerepkör (Gyors kitöltés)</label>
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '14px' }}>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  style={{
-                    flex: 1,
-                    backgroundColor: role === 'admin' ? '#e6f3ec' : 'transparent',
-                    borderColor: '#006837',
-                    color: '#006837',
-                    fontWeight: role === 'admin' ? '700' : '500',
-                  }}
-                  onClick={() => {
-                    setRole('admin');
-                    setEmail('kovacs.gabor@ceg.hu');
-                    setPassword('password123');
-                  }}
-                >
-                  Raktárvezető (Admin)
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  style={{
-                    flex: 1,
-                    backgroundColor: role === 'operator' ? '#e6f3ec' : 'transparent',
-                    borderColor: '#006837',
-                    color: '#006837',
-                    fontWeight: role === 'operator' ? '700' : '500',
-                  }}
-                  onClick={() => {
-                    setRole('operator');
-                    setEmail('kezelo.janos@ceg.hu');
-                    setPassword('password123');
-                  }}
-                >
-                  Kezelő (Munkatárs)
-                </button>
-              </div>
-            </div>
-
             <div className="form-group">
               <label className="form-label" htmlFor="email">
                 Email cím
@@ -272,7 +418,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <input
                   id="email"
                   type="email"
-                  required
                   className="input-with-icon"
                   placeholder="példa@ceg.hu"
                   value={email}
@@ -290,7 +435,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  required
                   className="input-with-icon input-with-icon-right"
                   placeholder="••••••••••••"
                   value={password}
@@ -320,7 +464,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <a
                 href="#forgot"
                 className="forgot-password-link"
-                onClick={(e) => e.preventDefault()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setAuthView('forgot');
+                  setError(null);
+                  setSuccessMessage(null);
+                }}
               >
                 Elfelejtett jelszó?
               </a>
@@ -336,7 +485,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               type="button"
               className="btn-secondary"
               onClick={() => {
-                setIsRegisterMode(true);
+                setAuthView('register');
                 setError(null);
                 setSuccessMessage(null);
               }}
@@ -346,7 +495,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </button>
           </form>
         </div>
-      ) : (
+      )}
+
+      {authView === 'register' && (
         <div className="login-card">
           <h2 className="login-title">Regisztráció</h2>
           <p className="login-subtitle">Hozz létre egy új SmartFarm fiókot</p>
@@ -369,6 +520,27 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             >
               <AlertCircle size={16} style={{ flexShrink: 0 }} />
               <span>{error}</span>
+            </div>
+          )}
+
+          {successMessage && (
+            <div
+              className="success-message"
+              style={{
+                padding: '10px 14px',
+                backgroundColor: 'var(--success-bg)',
+                color: 'var(--success)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '13px',
+                marginBottom: '16px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <CheckCircle size={16} style={{ flexShrink: 0 }} />
+              <span>{successMessage}</span>
             </div>
           )}
 
@@ -435,39 +607,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
             </div>
 
-            <div className="form-group" style={{ marginBottom: '24px' }}>
-              <label className="form-label">Szerepkör</label>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  style={{
-                    flex: 1,
-                    backgroundColor: role === 'admin' ? '#e6f3ec' : 'transparent',
-                    borderColor: '#006837',
-                    color: '#006837',
-                    fontWeight: role === 'admin' ? '700' : '500',
-                  }}
-                  onClick={() => setRole('admin')}
-                >
-                  Raktárvezető (Admin)
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  style={{
-                    flex: 1,
-                    backgroundColor: role === 'operator' ? '#e6f3ec' : 'transparent',
-                    borderColor: '#006837',
-                    color: '#006837',
-                    fontWeight: role === 'operator' ? '700' : '500',
-                  }}
-                  onClick={() => setRole('operator')}
-                >
-                  Kezelő (Munkatárs)
-                </button>
-              </div>
-            </div>
+
 
             <button type="submit" className="btn-primary" disabled={loading}>
               {loading ? 'Fiók létrehozása...' : 'Regisztráció'}
@@ -479,13 +619,231 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               type="button"
               className="btn-secondary"
               onClick={() => {
-                setIsRegisterMode(false);
+                setAuthView('login');
                 setError(null);
                 setSuccessMessage(null);
               }}
             >
               Vissza a bejelentkezéshez
             </button>
+          </form>
+        </div>
+      )}
+
+      {authView === 'forgot' && (
+        <div className="login-card">
+          <h2 className="login-title">Elfelejtett jelszó</h2>
+          <p className="login-subtitle">Add meg a regisztrált e-mail címed, és küldünk egy visszaállítási linket.</p>
+
+          {error && (
+            <div
+              className="error-message"
+              style={{
+                padding: '10px 14px',
+                backgroundColor: 'var(--danger-bg)',
+                color: 'var(--danger)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '13px',
+                marginBottom: '16px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <AlertCircle size={16} style={{ flexShrink: 0 }} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {successMessage && (
+            <div
+              className="success-message"
+              style={{
+                padding: '10px 14px',
+                backgroundColor: 'var(--success-bg)',
+                color: 'var(--success)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '13px',
+                marginBottom: '16px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <CheckCircle size={16} style={{ flexShrink: 0 }} />
+              <span>{successMessage}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleForgotPassword}>
+            <div className="form-group">
+              <label className="form-label" htmlFor="email">
+                Email cím
+              </label>
+              <div className="input-icon-wrapper">
+                <Mail className="input-icon" size={18} />
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  className="input-with-icon"
+                  placeholder="példa@ceg.hu"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? 'Küldés...' : 'Visszaállítási link küldése'}
+            </button>
+
+            <div className="form-divider">vagy</div>
+
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                setAuthView('login');
+                setError(null);
+                setSuccessMessage(null);
+              }}
+            >
+              Vissza a bejelentkezéshez
+            </button>
+          </form>
+        </div>
+      )}
+
+      {authView === 'reset-password' && (
+        <div className="login-card">
+          <h2 className="login-title">Új jelszó megadása</h2>
+          <p className="login-subtitle">
+            {isSupabaseConfigured
+              ? 'Add meg az új jelszót a fiókodhoz.'
+              : `Offline mód: Új jelszó beállítása a(z) ${resetEmailTarget || email} fiókhoz.`}
+          </p>
+
+          {error && (
+            <div
+              className="error-message"
+              style={{
+                padding: '10px 14px',
+                backgroundColor: 'var(--danger-bg)',
+                color: 'var(--danger)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '13px',
+                marginBottom: '16px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <AlertCircle size={16} style={{ flexShrink: 0 }} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {successMessage && (
+            <div
+              className="success-message"
+              style={{
+                padding: '10px 14px',
+                backgroundColor: 'var(--success-bg)',
+                color: 'var(--success)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '13px',
+                marginBottom: '16px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <CheckCircle size={16} style={{ flexShrink: 0 }} />
+              <span>{successMessage}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleResetPassword}>
+            <div className="form-group">
+              <label className="form-label" htmlFor="password">
+                Új jelszó
+              </label>
+              <div className="input-icon-wrapper">
+                <Lock className="input-icon" size={18} />
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  className="input-with-icon input-with-icon-right"
+                  placeholder="••••••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="input-icon-right"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label="Jelszó megjelenítése"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="confirmPassword">
+                Új jelszó megerősítése
+              </label>
+              <div className="input-icon-wrapper">
+                <Lock className="input-icon" size={18} />
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  required
+                  className="input-with-icon input-with-icon-right"
+                  placeholder="••••••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="input-icon-right"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label="Jelszó megerősítés megjelenítése"
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? 'Mentés...' : 'Jelszó mentése'}
+            </button>
+
+            {!isSupabaseConfigured && (
+              <>
+                <div className="form-divider">vagy</div>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => {
+                    setAuthView('login');
+                    setError(null);
+                    setSuccessMessage(null);
+                    setPassword('');
+                    setConfirmPassword('');
+                    setResetEmailTarget('');
+                  }}
+                >
+                  Mégse
+                </button>
+              </>
+            )}
           </form>
         </div>
       )}
