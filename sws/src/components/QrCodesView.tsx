@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Material } from '../db/dbService';
+import { useTranslation } from '../context/LanguageContext';
 
 interface QrCodesViewProps {
   materials: Material[];
@@ -10,12 +11,14 @@ export const QrCodesView: React.FC<QrCodesViewProps> = ({
   materials,
   onPrintQrClick
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="details-card" style={{ width: '100%' }}>
       <div className="details-card-header">
         <div>
-          <h2 className="details-card-title">QR-Kódok Generálása és Nyomtatása</h2>
-          <p className="page-subtitle">Válassz ki egy anyagot a hozzá tartozó QR-kód letöltéséhez vagy nyomtatásához</p>
+          <h2 className="details-card-title">{t('qrTitle')}</h2>
+          <p className="page-subtitle">{t('qrSubtitle')}</p>
         </div>
       </div>
 
@@ -31,7 +34,7 @@ export const QrCodesView: React.FC<QrCodesViewProps> = ({
               <img src={m.qr_code_url} alt={m.name} className="qr-image" style={{ width: '110px', height: '110px' }} />
             ) : (
               <div style={{ width: '110px', height: '110px', backgroundColor: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                QR generálása...
+                QR...
               </div>
             )}
             <span className="qr-print-id" style={{ fontSize: '13px' }}>{m.id}</span>

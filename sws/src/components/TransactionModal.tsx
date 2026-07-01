@@ -184,7 +184,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                       type="button"
                       className="btn-secondary"
                       style={{ padding: '8px 12px', fontSize: '12px' }}
-                      onClick={() => setTransactionQty(num)}
+                      onClick={() => setTransactionQty((prev) => (isNaN(prev) ? 0 : prev) + num)}
                     >
                       +{num}
                     </button>

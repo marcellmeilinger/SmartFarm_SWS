@@ -1,5 +1,6 @@
 import React from 'react';
 import type { UserProfile } from '../db/dbService';
+import { useTranslation } from '../context/LanguageContext';
 
 interface UsersViewProps {
   users: UserProfile[];
@@ -7,17 +8,19 @@ interface UsersViewProps {
 }
 
 export const UsersView: React.FC<UsersViewProps> = ({ users, onUpdateUserRole }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="details-card">
-      <h2 className="details-card-title" style={{ marginBottom: '16px' }}>Felhasználók Kezelése</h2>
+      <h2 className="details-card-title" style={{ marginBottom: '16px' }}>{t('usrTitle')}</h2>
       <div className="data-table-container">
         <table className="data-table">
           <thead>
             <tr>
-              <th>Név</th>
-              <th>Email cím</th>
-              <th>Szerepkör beállítása</th>
-              <th>Státusz</th>
+              <th>{t('usrColName')}</th>
+              <th>{t('usrColEmail')}</th>
+              <th>{t('usrColRole')}</th>
+              <th>{t('statStatus')}</th>
             </tr>
           </thead>
           <tbody>

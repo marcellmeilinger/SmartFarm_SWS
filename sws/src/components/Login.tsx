@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, Building2, Sprout, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../db/supabaseClient';
+import { useTranslation } from '../context/LanguageContext';
 
 interface LoginProps {
   onLogin: (user: { name: string; email: string; role: 'admin' | 'operator' }) => void;
@@ -8,11 +9,12 @@ interface LoginProps {
   onPasswordResetComplete?: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ 
-  onLogin, 
-  initialView = 'login', 
-  onPasswordResetComplete 
+export const Login: React.FC<LoginProps> = ({
+  onLogin,
+  initialView = 'login',
+  onPasswordResetComplete
 }) => {
+  const { t, language } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -233,7 +235,7 @@ export const Login: React.FC<LoginProps> = ({
         // Offline / Mock Mode Forgot Password
         const savedUsersJson = localStorage.getItem('smartfarm_users');
         const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
-        
+
         // Check if user exists (either in local store or default fallback test accounts)
         const isDefaultAdmin = email === 'kovacs.gabor@ceg.hu';
         const isDefaultOperator = email === 'kezelo.janos@ceg.hu';
@@ -292,7 +294,7 @@ export const Login: React.FC<LoginProps> = ({
         setSuccessMessage(
           'A jelszavad sikeresen megváltozott! Jelentkezz be újra az új jelszóval.'
         );
-        
+
         if (onPasswordResetComplete) {
           setTimeout(() => {
             onPasswordResetComplete();
@@ -312,7 +314,7 @@ export const Login: React.FC<LoginProps> = ({
 
         const savedUsersJson = localStorage.getItem('smartfarm_users');
         const savedUsers = savedUsersJson ? JSON.parse(savedUsersJson) : [];
-        
+
         const userIndex = savedUsers.findIndex((u: any) => u.email === targetEmail);
 
         if (userIndex !== -1) {
@@ -333,11 +335,11 @@ export const Login: React.FC<LoginProps> = ({
         setSuccessMessage(
           'Offline mód: A jelszó sikeresen megváltozott! Most már bejelentkezhetsz az új jelszóval.'
         );
-        
+
         setPassword('');
         setConfirmPassword('');
         setResetEmailTarget('');
-        
+
         setTimeout(() => {
           setAuthView('login');
           setSuccessMessage(null);
@@ -719,8 +721,8 @@ export const Login: React.FC<LoginProps> = ({
         <div className="login-card">
           <h2 className="login-title">Új jelszó megadása</h2>
           <p className="login-subtitle">
-            {isSupabaseConfigured 
-              ? 'Add meg az új jelszót a fiókodhoz.' 
+            {isSupabaseConfigured
+              ? 'Add meg az új jelszót a fiókodhoz.'
               : `Offline mód: Új jelszó beállítása a(z) ${resetEmailTarget || email} fiókhoz.`}
           </p>
 
@@ -849,8 +851,6 @@ export const Login: React.FC<LoginProps> = ({
       <div className="login-footer">
         <div>
           <span>SmartFarm Raktárkezelő</span>
-          <span className="login-footer-bullet">•</span>
-          <span>Biztonságos belső rendszer</span>
         </div>
         <div className="login-footer-copy">© 2026 SmartFarm. Minden jog fenntartva.</div>
       </div>

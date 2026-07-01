@@ -363,14 +363,43 @@ export const MaterialForm: React.FC<MaterialFormProps> = ({ onSave, onCancel, ex
                 </div>
               ) : (
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <button type="button" className="btn-secondary" style={{ flex: 1, padding: '16px' }} onClick={startCamera}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{
+                      flex: 1,
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                      height: '80px',
+                      boxSizing: 'border-box'
+                    }}
+                    onClick={startCamera}
+                  >
                     <Camera size={20} />
-                    <span style={{ display: 'block', fontSize: '12px', marginTop: '4px' }}>Fotózás kamerával</span>
+                    <span style={{ fontSize: '12px' }}>Fotózás kamerával</span>
                   </button>
                   
-                  <label className="btn-secondary" style={{ flex: 1, padding: '16px', cursor: 'pointer', textAlign: 'center' }}>
-                    <Upload size={20} style={{ margin: '0 auto' }} />
-                    <span style={{ display: 'block', fontSize: '12px', marginTop: '4px' }}>Kép feltöltése</span>
+                  <label
+                    className="btn-secondary"
+                    style={{
+                      flex: 1,
+                      padding: '16px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                      height: '80px',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <Upload size={20} />
+                    <span style={{ fontSize: '12px' }}>Kép feltöltése</span>
                     <input
                       type="file"
                       accept="image/*"

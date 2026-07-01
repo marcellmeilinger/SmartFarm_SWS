@@ -9,6 +9,7 @@ import type { Material, Transaction, UserProfile } from '../db/dbService';
 import { supabase, isSupabaseConfigured } from '../db/supabaseClient';
 import { MaterialForm } from './MaterialForm';
 import { QRScanner } from './QRScanner';
+import { useTranslation } from '../context/LanguageContext';
 
 // Import refactored subcomponents
 import { DashboardOverview } from './DashboardOverview';
@@ -22,11 +23,13 @@ import { QrPrintModal } from './QrPrintModal';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 
 interface DashboardProps {
-  user: { name: string; email: string; role: 'admin' | 'operator' };
+  user: { id: string; name: string; email: string; role: 'admin' | 'operator'; avatar_url?: string };
   onLogout: () => void;
+  onUserUpdate?: (updatedUser: Partial<{ id: string; name: string; email: string; role: 'admin' | 'operator'; avatar_url?: string }>) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpdate }) => {
+  const { t } = useTranslation();
   // Navigation states
   const [activeView, setActiveView] = useState<'dashboard' | 'materials' | 'movements' | 'qr-codes' | 'users' | 'settings'>('dashboard');
   const [mobileTab, setMobileTab] = useState<'home' | 'search' | 'qr' | 'movements' | 'profile'>('home');
@@ -98,7 +101,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     const handleClickOutside = (event: MouseEvent) => {
       const desktopClickedInside = desktopNotificationsRef.current && desktopNotificationsRef.current.contains(event.target as Node);
       const mobileClickedInside = mobileNotificationsRef.current && mobileNotificationsRef.current.contains(event.target as Node);
-      
+
       if (!desktopClickedInside && !mobileClickedInside) {
         setShowNotifications(false);
       }
@@ -126,7 +129,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
     // Set content first (container is already in DOM)
     setToast(tx);
-    
+
     // Add visible class in next frame for transition on enter
     setTimeout(() => {
       setToastVisible(true);
@@ -313,7 +316,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       alert(err.message || 'Hiba történt a jogosultság módosítása során.');
     }
   };
-  
+
   // Calculate unread transactions for the bell badge
   const unreadCount = transactions.filter(
     (t) => new Date(t.timestamp).getTime() > new Date(lastReadTimestamp).getTime()
@@ -345,35 +348,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
               onClick={() => setActiveView('dashboard')}
             >
               <LayoutDashboard size={18} />
-              <span>Dashboard</span>
+              <span>{t('navDashboard')}</span>
             </button>
             <button
               className={`nav-item ${activeView === 'materials' ? 'active' : ''}`}
               onClick={() => setActiveView('materials')}
             >
               <Package size={18} />
-              <span>Anyagok</span>
+              <span>{t('navMaterials')}</span>
             </button>
             <button
               className="nav-item"
               onClick={() => setShowNewMaterialModal(true)}
             >
               <Plus size={18} />
-              <span>Új anyag</span>
+              <span>{t('navNewMaterial')}</span>
             </button>
             <button
               className={`nav-item ${activeView === 'movements' ? 'active' : ''}`}
               onClick={() => setActiveView('movements')}
             >
               <ArrowLeftRight size={18} />
-              <span>Készletmozgások</span>
+              <span>{t('navMovements')}</span>
             </button>
             <button
               className={`nav-item ${activeView === 'qr-codes' ? 'active' : ''}`}
               onClick={() => setActiveView('qr-codes')}
             >
               <QrCode size={18} />
-              <span>QR-kódok</span>
+              <span>{t('navQrCodes')}</span>
             </button>
             {user.role === 'admin' && (
               <button
@@ -381,7 +384,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 onClick={() => setActiveView('users')}
               >
                 <UsersIcon size={18} />
-                <span>Felhasználók</span>
+                <span>{t('navUsers')}</span>
               </button>
             )}
             <button
@@ -389,15 +392,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
               onClick={() => setActiveView('settings')}
             >
               <SettingsIcon size={18} />
-              <span>Beállítások</span>
+              <span>{t('navSettings')}</span>
             </button>
           </nav>
 
           <div className="sidebar-footer">
             <Sprout className="sidebar-footer-logo" size={24} />
             <div className="sidebar-footer-text">
-              <h4>SmartFarm Raktár</h4>
-              <p>Verzió 1.2.0</p>
+              <h4>{t('appName')}</h4>
+              <p>{t('version')}</p>
             </div>
           </div>
         </aside>
@@ -411,7 +414,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
               <input
                 type="text"
                 className="search-input"
-                placeholder="Keresés anyag, azonosító vagy hely szerint..."
+                placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -423,11 +426,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             <div className="header-actions">
               <button
                 className="btn-secondary"
-                style={{ padding: '8px 14px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                style={{ width: '130px', height: '38px', padding: '0 12px', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexShrink: 0 }}
                 onClick={() => setShowScanner(true)}
               >
                 <QrCode size={16} />
-                <span>QR Beolvasás</span>
+                <span>{t('qrScanBtn')}</span>
               </button>
 
               <div className="notification-bell-container" ref={desktopNotificationsRef}>
@@ -499,21 +502,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 )}
               </div>
 
-              <div className="profile-dropdown-btn">
+              <div className="profile-display">
                 <img
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=006837&color=fff`}
+                  src={user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=006837&color=fff`}
                   alt={user.name}
                   className="profile-avatar"
                 />
                 <div className="profile-info">
                   <div className="profile-name">{user.name}</div>
-                  <div className="profile-role">{user.role === 'admin' ? 'Raktárvezető' : 'Raktári dolgozó'}</div>
+                  <div className="profile-role">{user.role === 'admin' ? t('roleAdmin') : t('roleOperator')}</div>
                 </div>
               </div>
 
               <button
                 className="icon-btn-badge logout-btn"
-                title="Kijelentkezés"
+                title={t('navLogout')}
                 onClick={onLogout}
               >
                 <LogOut size={20} />
@@ -524,8 +527,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           {/* Demo notice bar */}
           {isMock && (
             <div className="demo-mode-bar">
-              <span>Jelenleg offline Demó / LocalStorage üzemmódban fut a rendszer.</span>
-              <a onClick={() => setActiveView('settings')}>Supabase csatlakozási adatok megadása</a>
+              <span>{t('demoNotice')}</span>
+              <a onClick={() => setActiveView('settings')}>{t('demoLink')}</a>
             </div>
           )}
 
@@ -565,7 +568,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
               <UsersView users={users} onUpdateUserRole={handleUpdateUserRole} />
             )}
             {activeView === 'settings' && (
-              <SettingsView isMock={isMock} />
+              <SettingsView isMock={isMock} user={user} onUserUpdate={onUserUpdate} />
             )}
           </main>
         </div>
@@ -731,9 +734,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           {mobileTab === 'profile' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', textAlign: 'center', paddingTop: '20px' }}>
               <img
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=006837&color=fff&size=128`}
+                src={user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=006837&color=fff&size=128`}
                 alt={user.name}
-                style={{ width: '96px', height: '96px', borderRadius: '50%', border: '3px solid var(--primary)', boxShadow: 'var(--shadow-md)' }}
+                style={{ width: '96px', height: '96px', borderRadius: '50%', border: '3px solid var(--primary)', boxShadow: 'var(--shadow-md)', objectFit: 'cover' }}
               />
               <div>
                 <h3 style={{ fontSize: '18px', fontWeight: 700 }}>{user.name}</h3>
@@ -884,8 +887,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       )}
 
       {/* Realtime Toast Notification */}
-      <div 
-        className={`realtime-toast ${toast ? toast.type : ''} ${toast && toastVisible ? 'visible' : 'exit'}`} 
+      <div
+        className={`realtime-toast ${toast ? toast.type : ''} ${toast && toastVisible ? 'visible' : 'exit'}`}
         onClick={() => {
           if (!toast) return;
           if (isMobile) {
