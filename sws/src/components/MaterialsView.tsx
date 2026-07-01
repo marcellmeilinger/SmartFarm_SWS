@@ -2,6 +2,7 @@ import React from 'react';
 import { Package, MapPin, QrCode, Trash2, Pencil } from 'lucide-react';
 import { getStockStatus } from '../db/dbService';
 import type { Material } from '../db/dbService';
+import { useTranslation } from '../context/LanguageContext';
 
 interface MaterialsViewProps {
   materials: Material[];
@@ -32,6 +33,8 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
   isMobile = false,
   onMobileScanClick
 }) => {
+  const { t } = useTranslation();
+
   const filteredMaterials = materials.filter(m => {
     const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -44,14 +47,14 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 className="mobile-section-title">Raktári Anyagok</h3>
+          <h3 className="mobile-section-title">{t('matTitle')}</h3>
           <select
             className="form-select"
             style={{ width: '130px', padding: '6px', fontSize: '12px' }}
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
           >
-            <option value="All">Összes kategória</option>
+            <option value="All">{t('matAll')}</option>
             <option value="Permetszerek">Permetszerek</option>
             <option value="Műtrágyák">Műtrágyák</option>
             <option value="Vetőmagok">Vetőmagok</option>
@@ -83,12 +86,12 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                   )}
                   <div className="mobile-stock-info">
                     <h4 style={{ fontSize: '13px' }}>{m.name}</h4>
-                    <p style={{ fontSize: '10px' }}>Azonosító: {m.id} • Hely: {m.location}</p>
+                    <p style={{ fontSize: '10px' }}>{t('statId')}: {m.id} • {t('statLocation')}: {m.location}</p>
                   </div>
                 </div>
                 <div className="mobile-stock-card-right" style={{ marginRight: user.role === 'admin' ? '56px' : '0px' }}>
                   <span className={`mobile-stock-qty ${status}`} style={{ fontSize: '13px' }}>{m.quantity} {m.unit}</span>
-                  <span className="pct-badge" style={{ fontSize: '10px', margin: 0 }}>{pct}% szint</span>
+                  <span className="pct-badge" style={{ fontSize: '10px', margin: 0 }}>{pct}%</span>
                 </div>
                 {user.role === 'admin' && (
                   <div 
@@ -98,32 +101,22 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                       top: '50%',
                       transform: 'translateY(-50%)',
                       display: 'flex',
-                      gap: '8px',
+                      gap: '8px'
                     }}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <button
                       type="button"
-                      style={{
-                        color: 'var(--primary)',
-                        background: 'transparent',
-                        border: 'none',
-                        padding: '4px'
-                      }}
-                      title="Szerkesztés"
+                      style={{ background: 'none', border: 'none', color: 'var(--primary)', padding: '4px' }}
+                      title={t('matEdit')}
                       onClick={() => onEditClick(m)}
                     >
                       <Pencil size={16} />
                     </button>
                     <button
                       type="button"
-                      style={{
-                        color: 'var(--danger)',
-                        background: 'transparent',
-                        border: 'none',
-                        padding: '4px'
-                      }}
-                      title="Törlés"
+                      style={{ background: 'none', border: 'none', color: 'var(--danger)', padding: '4px' }}
+                      title={t('matDelete')}
                       onClick={() => onDeleteClick(m)}
                     >
                       <Trash2 size={16} />
@@ -133,42 +126,49 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
               </div>
             );
           })}
+          {filteredMaterials.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
+              {t('matNoResults')}
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
-  // Desktop view
+  // Desktop View
   return (
     <div className="details-card" style={{ width: '100%' }}>
-      <div className="details-card-header">
+      <div className="details-card-header" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
         <div>
-          <h2 className="details-card-title">Készletlista és Keresés</h2>
-          <p className="page-subtitle">Raktáron lévő anyagok részletes áttekintése</p>
+          <h2 className="details-card-title">{t('matTitle')}</h2>
+          <p className="page-subtitle">{t('matSubtitle')}</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <select
-            className="form-select"
-            style={{ width: '160px', padding: '8px 12px' }}
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-          >
-            <option value="All">Összes kategória</option>
-            <option value="Permetszerek">Permetszerek</option>
-            <option value="Műtrágyák">Műtrágyák</option>
-            <option value="Vetőmagok">Vetőmagok</option>
-            <option value="Tápok">Tápok</option>
-            <option value="Adalékanyagok">Adalékanyagok</option>
-            <option value="Egyéb">Egyéb</option>
-          </select>
-          <input
-            type="text"
-            className="form-input-text"
-            style={{ width: '240px', padding: '8px 12px' }}
-            placeholder="Keresés név / azonosító / hely..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>{t('matCategories')}</span>
+          <div style={{ display: 'flex', gap: '6px', backgroundColor: 'var(--bg-app)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            {['All', 'Permetszerek', 'Műtrágyák', 'Vetőmagok', 'Tápok', 'Adalékanyagok', 'Egyéb'].map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: selectedCategory === cat ? 600 : 500,
+                  border: 'none',
+                  backgroundColor: selectedCategory === cat ? 'var(--primary)' : 'transparent',
+                  color: selectedCategory === cat ? 'white' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onClick={() => setSelectedCategory(cat)}
+              >
+                {cat === 'All' ? t('matAll') : cat}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -176,13 +176,12 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
         <table className="data-table">
           <thead>
             <tr>
-              <th>Azonosító</th>
-              <th>Megnevezés</th>
+              <th>{t('statName')}</th>
               <th>Kategória</th>
-              <th>Raktárhely</th>
-              <th>Készletszint</th>
+              <th>{t('statLocation')}</th>
+              <th>{t('statStock')} / {t('statLevel')}</th>
               <th>Mértékegység</th>
-              <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>Műveletek</th>
+              <th style={{ textAlign: 'right' }}>{t('matActions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -192,9 +191,6 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
               
               return (
                 <tr key={m.id}>
-                  <td>
-                    <span className="material-id-badge">{m.id}</span>
-                  </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       {m.image_url ? (
@@ -237,13 +233,13 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                         style={{ padding: '6px 10px', fontSize: '11px', width: 'auto' }}
                         onClick={() => onAddTransactionClick(m)}
                       >
-                        Kiadás / Bevétel
+                        {t('matIntake')} / {t('matCheckout')}
                       </button>
                       <button
                         type="button"
                         className="btn-secondary"
                         style={{ padding: '6px', color: 'var(--text-secondary)', width: 'auto' }}
-                        title="QR-kód megtekintése"
+                        title={t('matPrint')}
                         onClick={() => onPrintQrClick(m)}
                       >
                         <QrCode size={16} />
@@ -254,7 +250,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                             type="button"
                             className="btn-secondary"
                             style={{ padding: '6px', color: 'var(--primary)', width: 'auto' }}
-                            title="Anyag szerkesztése"
+                            title={t('matEdit')}
                             onClick={() => onEditClick(m)}
                           >
                             <Pencil size={16} />
@@ -263,7 +259,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                             type="button"
                             className="btn-secondary"
                             style={{ padding: '6px', color: 'var(--danger)', width: 'auto' }}
-                            title="Anyag törlése"
+                            title={t('matDelete')}
                             onClick={() => onDeleteClick(m)}
                           >
                             <Trash2 size={16} />
@@ -278,7 +274,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
             {filteredMaterials.length === 0 && (
               <tr>
                 <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
-                  Nem található a keresésnek megfelelő anyag.
+                  {t('matNoResults')}
                 </td>
               </tr>
             )}

@@ -1,10 +1,10 @@
 import React from 'react';
 import { 
-  Sprout, Package, ArrowLeftRight, ShieldAlert, ArrowUpRight, ArrowDownRight, ChevronRight,
-  Plus, QrCode, ClipboardList
+  Sprout, Package, ArrowLeftRight, ShieldAlert, ArrowUpRight, ArrowDownRight, ChevronRight
 } from 'lucide-react';
 import { getStockStatus } from '../db/dbService';
 import type { Material, Transaction } from '../db/dbService';
+import { useTranslation } from '../context/LanguageContext';
 
 interface DashboardOverviewProps {
   materials: Material[];
@@ -36,6 +36,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   setMobileTab,
   onMobileStockCardClick
 }) => {
+  const { t, language } = useTranslation();
+  
   const totalMaterialsCount = materials.length;
 
   const greenCount = materials.filter(m => getStockStatus(m.quantity, m.max_quantity) === 'green').length;
@@ -44,9 +46,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
   const lowStockCount = yellowCount + redCount;
 
-  const transactionsToday = transactions.filter(t => {
+  const transactionsToday = transactions.filter(tItem => {
     const today = new Date().toDateString();
-    return new Date(t.timestamp).toDateString() === today;
+    return new Date(tItem.timestamp).toDateString() === today;
   }).length;
 
   const categoryCounts = materials.reduce((acc, curr) => {
@@ -96,22 +98,22 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             })}
           </svg>
           <div className="donut-center-text">
-            <p>Összesen</p>
+            <p>{t('totalText')}</p>
             <h4>{totalMaterialsCount}</h4>
           </div>
         </div>
 
-        <div className="legend-list">
+        <div className="category-legend">
           {categoriesList.map((cat) => {
             const count = categoryCounts[cat] || 0;
-            const pct = totalMaterialsCount > 0 ? ((count / totalMaterialsCount) * 100).toFixed(1) : '0.0';
+            const percent = totalMaterialsCount > 0 ? Math.round((count / totalMaterialsCount) * 100) : 0;
             return (
               <div key={cat} className="legend-item">
-                <div className="legend-label-wrapper">
-                  <div className="legend-color-dot" style={{ backgroundColor: categoryColors[cat] }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div className="legend-dot" style={{ backgroundColor: categoryColors[cat] }} />
                   <span className="legend-name">{cat}</span>
                 </div>
-                <span className="legend-val">{count} db ({pct}%)</span>
+                <span className="legend-val">{count} db ({percent}%)</span>
               </div>
             );
           })}
@@ -120,104 +122,80 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     );
   };
 
+  const getLocaleDateString = () => {
+    const locale = language === 'hu' ? 'hu-HU' : language === 'en' ? 'en-US' : 'de-DE';
+    return new Date().toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
+  const getLocaleTimeString = (timestamp: string) => {
+    const locale = language === 'hu' ? 'hu-HU' : language === 'en' ? 'en-US' : 'de-DE';
+    return new Date(timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  };
+
   if (isMobile) {
     return (
       <>
-        {/* Horizontal Stats Row */}
-        <div className="mobile-stats-row">
+        {/* Mobile Stats grid */}
+        <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '20px' }}>
           <div className="mobile-stat-card">
-            <div className="mobile-stat-card-header">
-              <Package size={14} className="mobile-action-btn-icon" />
-              <span>Összes anyag</span>
+            <div className="mobile-stat-header">
+              <span className="mobile-stat-title">{t('cardTotalMaterials')}</span>
+              <div className="mobile-stat-icon green"><Package size={16} /></div>
             </div>
-            <div className="mobile-stat-card-value">{totalMaterialsCount}</div>
-            <div className="mobile-stat-card-change" style={{ color: 'var(--success)' }}>+5 a héten ↑</div>
-          </div>
-
-          <div className="mobile-stat-card">
-            <div className="mobile-stat-card-header" style={{ color: 'var(--danger)' }}>
-              <ShieldAlert size={14} />
-              <span>Alacsony készlet</span>
-            </div>
-            <div className="mobile-stat-card-value" style={{ color: 'var(--danger)' }}>{lowStockCount}</div>
-            <div className="mobile-stat-card-change" style={{ color: 'var(--warning)' }}>+3 a héten ↑</div>
+            <div className="mobile-stat-value">{totalMaterialsCount}</div>
+            <span className="mobile-stat-desc" style={{ color: 'var(--success)' }}>+5 {t('comparedToLastWeek')}</span>
           </div>
 
           <div className="mobile-stat-card">
-            <div className="mobile-stat-card-header">
-              <ArrowLeftRight size={14} className="mobile-action-btn-icon" />
-              <span>Mai mozgások</span>
+            <div className="mobile-stat-header">
+              <span className="mobile-stat-title">{t('cardLowStock')}</span>
+              <div className="mobile-stat-icon red"><ShieldAlert size={16} /></div>
             </div>
-            <div className="mobile-stat-card-value">{transactionsToday}</div>
-            <div className="mobile-stat-card-change" style={{ color: 'var(--success)' }}>+8 tegnap óta ↑</div>
+            <div className="mobile-stat-value" style={{ color: 'var(--danger)' }}>{lowStockCount}</div>
+            <span className="mobile-stat-desc" style={{ color: 'var(--warning)' }}>+3 {t('comparedToLastWeek')}</span>
+          </div>
+
+          <div className="mobile-stat-card">
+            <div className="mobile-stat-header">
+              <span className="mobile-stat-title">{t('cardTodayMovements')}</span>
+              <div className="mobile-stat-icon green"><ArrowLeftRight size={16} /></div>
+            </div>
+            <div className="mobile-stat-value">{transactionsToday}</div>
+            <span className="mobile-stat-desc" style={{ color: 'var(--success)' }}>+8 {t('comparedToYesterday')}</span>
           </div>
         </div>
 
-        {/* Status Indicator block grid */}
-        <div className="mobile-status-container">
-          <div className="mobile-status-title">Készletszint áttekintés</div>
-          <div className="mobile-status-row">
-            <div className="mobile-status-col green">
-              <div className="mobile-status-col-header">
-                <div className="status-dot green" />
-                <span>Zöld</span>
-              </div>
-              <div className="mobile-status-col-value">{greenCount}</div>
-              <div className="mobile-status-col-pct">{totalMaterialsCount > 0 ? Math.round((greenCount / totalMaterialsCount) * 100) : 0}%</div>
-            </div>
-
-            <div className="mobile-status-col yellow">
-              <div className="mobile-status-col-header">
-                <div className="status-dot yellow" />
-                <span>Sárga</span>
-              </div>
-              <div className="mobile-status-col-value">{yellowCount}</div>
-              <div className="mobile-status-col-pct">{totalMaterialsCount > 0 ? Math.round((yellowCount / totalMaterialsCount) * 100) : 0}%</div>
-            </div>
-
-            <div className="mobile-status-col red">
-              <div className="mobile-status-col-header">
-                <div className="status-dot red" />
-                <span>Piros</span>
-              </div>
-              <div className="mobile-status-col-value">{redCount}</div>
-              <div className="mobile-status-col-pct">{totalMaterialsCount > 0 ? Math.round((redCount / totalMaterialsCount) * 100) : 0}%</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions Grid */}
-        <div className="mobile-actions-grid">
-          <button className="mobile-action-btn" onClick={() => setShowScanner && setShowScanner(true)}>
-            <QrCode size={20} className="mobile-action-btn-icon" />
-            <span className="mobile-action-btn-text">QR beolvasás</span>
+        {/* Mobile Quick actions */}
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
+          <button
+            type="button"
+            className="btn-primary"
+            style={{ flex: 1, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px' }}
+            onClick={() => setShowScanner && setShowScanner(true)}
+          >
+            <QrCode size={18} />
+            <span>{t('qrScanBtn')}</span>
           </button>
-
-          <button className="mobile-action-btn" onClick={() => setShowNewMaterialModal && setShowNewMaterialModal(true)}>
-            <Plus size={20} className="mobile-action-btn-icon" />
-            <span className="mobile-action-btn-text">Új anyag</span>
-          </button>
-
-          <button className="mobile-action-btn" onClick={() => setMobileTab && setMobileTab('movements')}>
-            <ArrowLeftRight size={20} className="mobile-action-btn-icon" />
-            <span className="mobile-action-btn-text">Mozgások</span>
-          </button>
-
-          <button className="mobile-action-btn" onClick={() => setMobileTab && setMobileTab('search')}>
-            <ClipboardList size={20} className="mobile-action-btn-icon" />
-            <span className="mobile-action-btn-text">Készletlista</span>
+          <button
+            type="button"
+            className="btn-secondary"
+            style={{ flex: 1, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px' }}
+            onClick={() => setShowNewMaterialModal && setShowNewMaterialModal(true)}
+          >
+            <Plus size={18} />
+            <span>{t('navNewMaterial')}</span>
           </button>
         </div>
 
-        {/* Critical Stocks List */}
-        <div className="mobile-section-header">
-          <span className="mobile-section-title">Kritikus készlet</span>
+        {/* Mobile critical inventory stock list */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <span className="mobile-section-title">{t('criticalStockTitle')}</span>
           <button className="mobile-section-link" onClick={() => setMobileTab && setMobileTab('search')}>
-            Összes megtekintése &gt;
+            {t('viewAllCritical').split(' ')[0]} &gt;
           </button>
         </div>
 
-        <div className="mobile-stock-list">
+        <div className="mobile-stock-list" style={{ marginBottom: '24px' }}>
           {criticalStockItems.map((m) => {
             const status = getStockStatus(m.quantity, m.max_quantity);
             const pct = Math.round((m.quantity / m.max_quantity) * 100);
@@ -225,52 +203,57 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               <div 
                 key={m.id} 
                 className="mobile-stock-card"
+                style={{ padding: '12px' }}
                 onClick={() => onMobileStockCardClick && onMobileStockCardClick(m.id)}
               >
                 <div className="mobile-stock-card-left">
-                  <div className={`status-dot ${status}`} style={{ width: '10px', height: '10px' }} />
+                  {m.image_url ? (
+                    <img src={m.image_url} alt={m.name} style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '40px', height: '40px', borderRadius: '4px', backgroundColor: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                      <Package size={20} />
+                    </div>
+                  )}
                   <div className="mobile-stock-info">
-                    <h4>{m.id}</h4>
-                    <p>{m.name}</p>
+                    <h4 style={{ fontSize: '13px' }}>{m.name}</h4>
+                    <p style={{ fontSize: '10px' }}>{t('statId')}: {m.id} • {t('statLocation')}: {m.location}</p>
                   </div>
                 </div>
                 <div className="mobile-stock-card-right">
-                  <span className={`mobile-stock-qty ${status}`}>{m.quantity} {m.unit}</span>
-                  <div className="progress-bar-container" style={{ width: '60px' }}>
-                    <div className={`progress-bar-fill ${status}`} style={{ width: `${pct}%` }} />
-                  </div>
+                  <span className={`mobile-stock-qty ${status}`} style={{ fontSize: '13px' }}>{m.quantity} {m.unit}</span>
+                  <span className="pct-badge" style={{ fontSize: '10px', margin: 0 }}>{pct}%</span>
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Recent movements */}
-        <div className="mobile-section-header">
-          <span className="mobile-section-title">Legutóbbi mozgások</span>
+        {/* Mobile recent movements list */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <span className="mobile-section-title">{t('movTitle')}</span>
           <button className="mobile-section-link" onClick={() => setMobileTab && setMobileTab('movements')}>
-            Összes megtekintése &gt;
+            {t('viewAllCritical').split(' ')[0]} &gt;
           </button>
         </div>
 
         <div className="mobile-stock-list">
-          {transactions.slice(0, 3).map((t) => (
-            <div key={t.id} className="mobile-stock-card" style={{ padding: '12px' }}>
+          {transactions.slice(0, 3).map((tItem) => (
+            <div key={tItem.id} className="mobile-stock-card" style={{ padding: '12px' }}>
               <div className="mobile-stock-card-left">
-                <div className={`movement-icon-wrapper ${t.type}`} style={{ width: '28px', height: '28px' }}>
-                  {t.type === 'intake' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                <div className={`movement-icon-wrapper ${tItem.type}`} style={{ width: '28px', height: '28px' }}>
+                  {tItem.type === 'intake' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                 </div>
                 <div className="mobile-stock-info">
-                  <h4 style={{ fontSize: '12px' }}>{t.material_name}</h4>
-                  <p style={{ fontSize: '10px' }}>Kiadta: {t.user_name}</p>
+                  <h4 style={{ fontSize: '12px' }}>{tItem.material_name}</h4>
+                  <p style={{ fontSize: '10px' }}>{tItem.user_name}</p>
                 </div>
               </div>
               <div className="mobile-stock-card-right">
-                <span className={`movement-qty ${t.type}`} style={{ fontSize: '12px' }}>
-                  {t.quantity > 0 ? `+${t.quantity}` : t.quantity}
+                <span className={`movement-qty ${tItem.type}`} style={{ fontSize: '12px' }}>
+                  {tItem.quantity > 0 ? `+${tItem.quantity}` : tItem.quantity}
                 </span>
                 <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-                  {new Date(t.timestamp).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' })}
+                  {getLocaleTimeString(tItem.timestamp)}
                 </span>
               </div>
             </div>
@@ -284,22 +267,22 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     <>
       <div className="page-title-section">
         <div>
-          <h2 className="page-title">Főáttekintő dashboard</h2>
-          <p className="page-subtitle">Áttekintés a raktár készletéről és a legfontosabb mutatókról.</p>
+          <h2 className="page-title">{t('dbTitle')}</h2>
+          <p className="page-subtitle">{t('dbSubtitle')}</p>
         </div>
         <div style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500 }}>
-          {new Date().toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' })}
+          {getLocaleDateString()}
         </div>
       </div>
 
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-info">
-            <h3>Összes anyag</h3>
+            <h3>{t('cardTotalMaterials')}</h3>
             <div className="stat-value">{totalMaterialsCount}</div>
             <div className="stat-change up">
               <ArrowUpRight size={14} />
-              <span>+5 az előző héthez képest</span>
+              <span>+5 {t('comparedToLastWeek')}</span>
             </div>
           </div>
           <div className="stat-icon-wrapper green">
@@ -309,11 +292,11 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
         <div className="stat-card">
           <div className="stat-info">
-            <h3>Alacsony készlet</h3>
+            <h3>{t('cardLowStock')}</h3>
             <div className="stat-value" style={{ color: 'var(--danger)' }}>{lowStockCount}</div>
             <div className="stat-change down" style={{ color: 'var(--warning)' }}>
               <ArrowUpRight size={14} />
-              <span>+3 az előző héthez képest</span>
+              <span>+3 {t('comparedToLastWeek')}</span>
             </div>
           </div>
           <div className="stat-icon-wrapper red">
@@ -323,11 +306,11 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
         <div className="stat-card">
           <div className="stat-info">
-            <h3>Mai mozgások</h3>
+            <h3>{t('cardTodayMovements')}</h3>
             <div className="stat-value">{transactionsToday}</div>
             <div className="stat-change up">
               <ArrowUpRight size={14} />
-              <span>+8 az előző naphoz képest</span>
+              <span>+8 {t('comparedToYesterday')}</span>
             </div>
           </div>
           <div className="stat-icon-wrapper green">
@@ -341,7 +324,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           <div className="status-block-info">
             <div className="status-indicator-label">
               <div className="status-dot-large green" />
-              <span>Zöld szint (&gt;70%)</span>
+              <span>{t('levelGreen')}</span>
             </div>
             <div className="status-block-value">{greenCount}</div>
             <div className="status-block-pct">{totalMaterialsCount > 0 ? Math.round((greenCount / totalMaterialsCount) * 100) : 0}%</div>
@@ -353,7 +336,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           <div className="status-block-info">
             <div className="status-indicator-label">
               <div className="status-dot-large yellow" />
-              <span>Sárga szint (40-70%)</span>
+              <span>{t('levelYellow')}</span>
             </div>
             <div className="status-block-value">{yellowCount}</div>
             <div className="status-block-pct">{totalMaterialsCount > 0 ? Math.round((yellowCount / totalMaterialsCount) * 100) : 0}%</div>
@@ -365,7 +348,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           <div className="status-block-info">
             <div className="status-indicator-label">
               <div className="status-dot-large red" />
-              <span>Piros szint (&lt;40%)</span>
+              <span>{t('levelRed')}</span>
             </div>
             <div className="status-block-value">{redCount}</div>
             <div className="status-block-pct">{totalMaterialsCount > 0 ? Math.round((redCount / totalMaterialsCount) * 100) : 0}%</div>
@@ -377,9 +360,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       <div className="dashboard-details-grid">
         <div className="details-card">
           <div className="details-card-header">
-            <h3 className="details-card-title">Kritikus készletű anyagok</h3>
+            <h3 className="details-card-title">{t('criticalStockTitle')}</h3>
             <button className="view-all-link" onClick={() => setActiveView('materials')}>
-              <span>Összes kritikus anyag megtekintése</span>
+              <span>{t('viewAllCritical')}</span>
               <ChevronRight size={16} />
             </button>
           </div>
@@ -388,13 +371,13 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Státusz</th>
-                  <th>Azonosító</th>
-                  <th>Név</th>
-                  <th>Készlet</th>
-                  <th>Max</th>
-                  <th>Szint</th>
-                  <th>Hely</th>
+                  <th>{t('statStatus')}</th>
+                  <th>{t('statId')}</th>
+                  <th>{t('statName')}</th>
+                  <th>{t('statStock')}</th>
+                  <th>MAX</th>
+                  <th>{t('statLevel')}</th>
+                  <th>{t('statLocation')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -431,7 +414,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
         <div className="details-card">
           <div className="details-card-header">
-            <h3 className="details-card-title">Kategória szerinti megoszlás</h3>
+            <h3 className="details-card-title">{t('categoryDistribution')}</h3>
           </div>
           {renderDonutChart()}
         </div>
@@ -440,31 +423,31 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       <div className="dashboard-details-grid" style={{ gridTemplateColumns: '1fr 1.5fr' }}>
         <div className="details-card" style={{ gridColumn: 'span 2' }}>
           <div className="details-card-header">
-            <h3 className="details-card-title">Legutóbbi készletmozgások</h3>
+            <h3 className="details-card-title">{t('movTitle')}</h3>
             <button className="view-all-link" onClick={() => setActiveView('movements')}>
-              <span>Összes mozgás megtekintése</span>
+              <span>{t('viewAllCritical').split(' ')[0] + ' ' + t('navMovements').toLowerCase()}</span>
               <ChevronRight size={16} />
             </button>
           </div>
 
           <div className="movement-list" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            {transactions.slice(0, 4).map((t) => (
-              <div key={t.id} className="movement-item" style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
+            {transactions.slice(0, 4).map((tItem) => (
+              <div key={tItem.id} className="movement-item" style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
                 <div className="movement-left">
-                  <div className={`movement-icon-wrapper ${t.type}`}>
-                    {t.type === 'intake' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
+                  <div className={`movement-icon-wrapper ${tItem.type}`}>
+                    {tItem.type === 'intake' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
                   </div>
                   <div className="movement-info">
-                    <h4>{t.material_name} <span className="material-id-badge" style={{ fontSize: '10px' }}>{t.material_id}</span></h4>
-                    <p>Végezte: {t.user_name} • {t.notes || 'Nincs megjegyzés'}</p>
+                    <h4>{tItem.material_name} <span className="material-id-badge" style={{ fontSize: '10px' }}>{tItem.material_id}</span></h4>
+                    <p>{tItem.user_name} • {tItem.notes || '—'}</p>
                   </div>
                 </div>
                 <div className="movement-right">
-                  <span className={`movement-qty ${t.type}`}>
-                    {t.quantity > 0 ? `+${t.quantity}` : t.quantity}
+                  <span className={`movement-qty ${tItem.type}`}>
+                    {tItem.quantity > 0 ? `+${tItem.quantity}` : tItem.quantity}
                   </span>
                   <div className="movement-time">
-                    {new Date(t.timestamp).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' })}
+                    {getLocaleTimeString(tItem.timestamp)}
                   </div>
                 </div>
               </div>

@@ -9,6 +9,7 @@ import type { Material, Transaction, UserProfile } from '../db/dbService';
 import { supabase, isSupabaseConfigured } from '../db/supabaseClient';
 import { MaterialForm } from './MaterialForm';
 import { QRScanner } from './QRScanner';
+import { useTranslation } from '../context/LanguageContext';
 
 // Import refactored subcomponents
 import { DashboardOverview } from './DashboardOverview';
@@ -28,6 +29,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpdate }) => {
+  const { t } = useTranslation();
   // Navigation states
   const [activeView, setActiveView] = useState<'dashboard' | 'materials' | 'movements' | 'qr-codes' | 'users' | 'settings'>('dashboard');
   const [mobileTab, setMobileTab] = useState<'home' | 'search' | 'qr' | 'movements' | 'profile'>('home');
@@ -339,57 +341,57 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               onClick={() => setActiveView('dashboard')}
             >
               <LayoutDashboard size={18} />
-              <span>Dashboard</span>
+              <span>{t('navDashboard')}</span>
             </button>
             <button
               className={`nav-item ${activeView === 'materials' ? 'active' : ''}`}
               onClick={() => setActiveView('materials')}
             >
               <Package size={18} />
-              <span>Anyagok</span>
+              <span>{t('navMaterials')}</span>
             </button>
             <button
               className="nav-item"
               onClick={() => setShowNewMaterialModal(true)}
             >
               <Plus size={18} />
-              <span>Új anyag</span>
+              <span>{t('navNewMaterial')}</span>
             </button>
             <button
               className={`nav-item ${activeView === 'movements' ? 'active' : ''}`}
               onClick={() => setActiveView('movements')}
             >
               <ArrowLeftRight size={18} />
-              <span>Készletmozgások</span>
+              <span>{t('navMovements')}</span>
             </button>
             <button
               className={`nav-item ${activeView === 'qr-codes' ? 'active' : ''}`}
               onClick={() => setActiveView('qr-codes')}
             >
               <QrCode size={18} />
-              <span>QR-kódok</span>
+              <span>{t('navQrCodes')}</span>
             </button>
             <button
               className={`nav-item ${activeView === 'users' ? 'active' : ''}`}
               onClick={() => setActiveView('users')}
             >
               <UsersIcon size={18} />
-              <span>Felhasználók</span>
+              <span>{t('navUsers')}</span>
             </button>
             <button
               className={`nav-item ${activeView === 'settings' ? 'active' : ''}`}
               onClick={() => setActiveView('settings')}
             >
               <SettingsIcon size={18} />
-              <span>Beállítások</span>
+              <span>{t('navSettings')}</span>
             </button>
           </nav>
 
           <div className="sidebar-footer">
             <Sprout className="sidebar-footer-logo" size={24} />
             <div className="sidebar-footer-text">
-              <h4>SmartFarm Raktár</h4>
-              <p>Verzió 1.2.0</p>
+              <h4>{t('appName')}</h4>
+              <p>{t('version')}</p>
             </div>
           </div>
         </aside>
@@ -403,7 +405,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               <input
                 type="text"
                 className="search-input"
-                placeholder="Keresés anyag, azonosító vagy hely szerint..."
+                placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -415,11 +417,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
             <div className="header-actions">
               <button
                 className="btn-secondary"
-                style={{ padding: '8px 14px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                style={{ width: '130px', height: '38px', padding: '0 12px', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexShrink: 0 }}
                 onClick={() => setShowScanner(true)}
               >
                 <QrCode size={16} />
-                <span>QR Beolvasás</span>
+                <span>{t('qrScanBtn')}</span>
               </button>
 
               <div className="notification-bell-container" ref={desktopNotificationsRef}>
@@ -499,13 +501,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 />
                 <div className="profile-info">
                   <div className="profile-name">{user.name}</div>
-                  <div className="profile-role">{user.role === 'admin' ? 'Raktárvezető' : 'Raktári dolgozó'}</div>
+                  <div className="profile-role">{user.role === 'admin' ? t('roleAdmin') : t('roleOperator')}</div>
                 </div>
               </div>
 
               <button
                 className="icon-btn-badge logout-btn"
-                title="Kijelentkezés"
+                title={t('navLogout')}
                 onClick={onLogout}
               >
                 <LogOut size={20} />
@@ -516,8 +518,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
           {/* Demo notice bar */}
           {isMock && (
             <div className="demo-mode-bar">
-              <span>Jelenleg offline Demó / LocalStorage üzemmódban fut a rendszer.</span>
-              <a onClick={() => setActiveView('settings')}>Supabase csatlakozási adatok megadása</a>
+              <span>{t('demoNotice')}</span>
+              <a onClick={() => setActiveView('settings')}>{t('demoLink')}</a>
             </div>
           )}
 

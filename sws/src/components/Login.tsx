@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, Building2, Sprout, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../db/supabaseClient';
+import { useTranslation } from '../context/LanguageContext';
 
 interface LoginProps {
   onLogin: (user: { name: string; email: string; role: 'admin' | 'operator' }) => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {
+  const { t, language } = useTranslation();
   const [email, setEmail] = useState('kovacs.gabor@ceg.hu');
   const [password, setPassword] = useState('password123');
   const [showPassword, setShowPassword] = useState(false);
@@ -491,8 +493,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       <div className="login-footer">
         <div>
           <span>SmartFarm Raktárkezelő</span>
-          <span className="login-footer-bullet">•</span>
-          <span>Biztonságos belső rendszer</span>
         </div>
         <div className="login-footer-copy">© 2026 SmartFarm. Minden jog fenntartva.</div>
       </div>
