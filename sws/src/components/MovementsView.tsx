@@ -50,7 +50,7 @@ export const MovementsView: React.FC<MovementsViewProps> = ({
                       tItem.notes.length > 25 ? (
                         <span 
                           style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--primary)' }} 
-                          onClick={() => setSelectedNotes(tItem.notes)}
+                          onClick={() => setSelectedNotes(tItem.notes || null)}
                         >
                           {tItem.notes.substring(0, 22)}...
                         </span>
@@ -176,7 +176,7 @@ export const MovementsView: React.FC<MovementsViewProps> = ({
                         cursor: 'pointer',
                         textDecoration: 'underline'
                       }}
-                      onClick={() => setSelectedNotes(tItem.notes)}
+                      onClick={() => setSelectedNotes(tItem.notes || null)}
                       title="Kattints a részletekért"
                     >
                       {tItem.notes}

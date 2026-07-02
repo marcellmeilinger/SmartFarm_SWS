@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, Building2, Sprout, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../db/supabaseClient';
-import { useTranslation } from '../context/LanguageContext';
+// import { useTranslation } from '../context/LanguageContext';
 
 interface LoginProps {
-  onLogin: (user: { name: string; email: string; role: 'admin' | 'operator' }) => void;
+  onLogin: (user: { id: string; name: string; email: string; role: 'admin' | 'operator'; avatar_url?: string }) => void;
   initialView?: 'login' | 'register' | 'forgot' | 'reset-password';
   onPasswordResetComplete?: () => void;
 }
@@ -14,7 +14,7 @@ export const Login: React.FC<LoginProps> = ({
   initialView = 'login',
   onPasswordResetComplete
 }) => {
-  const { t, language } = useTranslation();
+  // const { t, language } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -94,6 +94,7 @@ export const Login: React.FC<LoginProps> = ({
 
         if (localUser) {
           onLogin({
+            id: localUser.id || 'mock-id-' + localUser.email,
             name: localUser.name,
             email: localUser.email,
             role: localUser.role,
@@ -101,9 +102,9 @@ export const Login: React.FC<LoginProps> = ({
         } else {
           // Fallback to default test accounts
           if (loginEmail === 'kovacs.gabor@ceg.hu' && loginPassword === 'password123') {
-            onLogin({ name: 'Kovács Gábor', email: loginEmail, role: 'admin' });
+            onLogin({ id: 'admin-mock-id', name: 'Kovács Gábor', email: loginEmail, role: 'admin' });
           } else if (loginEmail === 'kezelo.janos@ceg.hu' && loginPassword === 'password123') {
-            onLogin({ name: 'Kezelő János', email: loginEmail, role: 'operator' });
+            onLogin({ id: 'operator-mock-id', name: 'Kezelő János', email: loginEmail, role: 'operator' });
           } else {
             throw new Error(
               'Hibás e-mail cím vagy jelszó. Offline módban használd a teszt fiókokat vagy regisztrálj újat!'
@@ -162,6 +163,7 @@ export const Login: React.FC<LoginProps> = ({
 
           if (data.session) {
             onLogin({
+              id: data.user.id,
               name: fullName,
               email: data.user.email || email,
               role: role,
@@ -185,6 +187,7 @@ export const Login: React.FC<LoginProps> = ({
         }
 
         const newUser = {
+          id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11),
           name: fullName,
           email,
           password,

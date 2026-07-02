@@ -1,6 +1,7 @@
 import React from 'react';
 import { 
-  Sprout, Package, ArrowLeftRight, ShieldAlert, ArrowUpRight, ArrowDownRight, ChevronRight
+  Sprout, Package, ArrowLeftRight, ShieldAlert, ArrowUpRight, ArrowDownRight, ChevronRight,
+  QrCode, Plus
 } from 'lucide-react';
 import { getStockStatus } from '../db/dbService';
 import type { Material, Transaction } from '../db/dbService';

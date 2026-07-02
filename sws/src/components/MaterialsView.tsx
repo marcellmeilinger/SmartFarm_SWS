@@ -22,7 +22,7 @@ interface MaterialsViewProps {
 export const MaterialsView: React.FC<MaterialsViewProps> = ({
   materials,
   searchQuery,
-  setSearchQuery,
+  setSearchQuery: _setSearchQuery,
   selectedCategory,
   setSelectedCategory,
   user,
