@@ -1,5 +1,5 @@
-import React from 'react';
-import { Package, MapPin, QrCode, Trash2, Pencil } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Package, MapPin, QrCode, Trash2, Pencil, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react';
 import { getStockStatus } from '../db/dbService';
 import type { Material } from '../db/dbService';
 import { useTranslation } from '../context/LanguageContext';
@@ -34,14 +34,81 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
   onMobileScanClick
 }) => {
   const { t } = useTranslation();
+  const [sortField, setSortField] = useState<'name' | 'category' | 'location' | 'stock' | 'unit' | null>('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  const filteredMaterials = materials.filter(m => {
-    const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          m.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || m.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const handleSort = (field: 'name' | 'category' | 'location' | 'stock' | 'unit') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const renderSortIcon = (field: 'name' | 'category' | 'location' | 'stock' | 'unit') => {
+    if (sortField !== field) {
+      return <ArrowUpDown size={12} style={{ opacity: 0.4, marginLeft: '6px' }} />;
+    }
+    return sortDirection === 'asc' ? (
+      <ChevronUp size={12} style={{ color: 'var(--primary)', marginLeft: '6px' }} />
+    ) : (
+      <ChevronDown size={12} style={{ color: 'var(--primary)', marginLeft: '6px' }} />
+    );
+  };
+
+  const filteredMaterials = useMemo(() => {
+    return materials.filter(m => {
+      const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            m.location.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === 'All' || m.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [materials, searchQuery, selectedCategory]);
+
+  const sortedMaterials = useMemo(() => {
+    if (!sortField) return filteredMaterials;
+    return [...filteredMaterials].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      switch (sortField) {
+        case 'name':
+          valA = a.name || '';
+          valB = b.name || '';
+          break;
+        case 'category':
+          valA = t(`cat_${a.category}`) || '';
+          valB = t(`cat_${b.category}`) || '';
+          break;
+        case 'location':
+          valA = a.location || '';
+          valB = b.location || '';
+          break;
+        case 'stock':
+          valA = a.quantity / a.max_quantity;
+          valB = b.quantity / b.max_quantity;
+          break;
+        case 'unit':
+          valA = a.unit || '';
+          valB = b.unit || '';
+          break;
+        default:
+          return 0;
+      }
+
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return sortDirection === 'asc' ? valA - valB : valB - valA;
+      }
+
+      const strA = String(valA).toLowerCase();
+      const strB = String(valB).toLowerCase();
+      if (strA < strB) return sortDirection === 'asc' ? -1 : 1;
+      if (strA > strB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredMaterials, sortField, sortDirection, t]);
 
   if (isMobile) {
     return (
@@ -65,7 +132,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {filteredMaterials.map((m) => {
+          {sortedMaterials.map((m) => {
             const status = getStockStatus(m.quantity, m.max_quantity);
             const pct = Math.round((m.quantity / m.max_quantity) * 100);
             
@@ -126,7 +193,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
               </div>
             );
           })}
-          {filteredMaterials.length === 0 && (
+          {sortedMaterials.length === 0 && (
             <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
               {t('matNoResults')}
             </div>
@@ -176,16 +243,41 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
         <table className="data-table">
           <thead>
             <tr>
-              <th>{t('statName')}</th>
-              <th>{t('colCategory')}</th>
-              <th>{t('statLocation')}</th>
-              <th>{t('statStock')} / {t('statLevel')}</th>
-              <th>{t('colUnit')}</th>
+              <th className="sortable" onClick={() => handleSort('name')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {t('statName')}
+                  {renderSortIcon('name')}
+                </div>
+              </th>
+              <th className="sortable" onClick={() => handleSort('category')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {t('colCategory')}
+                  {renderSortIcon('category')}
+                </div>
+              </th>
+              <th className="sortable" onClick={() => handleSort('location')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {t('statLocation')}
+                  {renderSortIcon('location')}
+                </div>
+              </th>
+              <th className="sortable" onClick={() => handleSort('stock')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {t('statStock')} / {t('statLevel')}
+                  {renderSortIcon('stock')}
+                </div>
+              </th>
+              <th className="sortable" onClick={() => handleSort('unit')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {t('colUnit')}
+                  {renderSortIcon('unit')}
+                </div>
+              </th>
               <th style={{ textAlign: 'right' }}>{t('matActions')}</th>
             </tr>
           </thead>
           <tbody>
-            {filteredMaterials.map((m) => {
+            {sortedMaterials.map((m) => {
               const status = getStockStatus(m.quantity, m.max_quantity);
               const pct = Math.round((m.quantity / m.max_quantity) * 100);
               
@@ -271,7 +363,7 @@ export const MaterialsView: React.FC<MaterialsViewProps> = ({
                 </tr>
               );
             })}
-            {filteredMaterials.length === 0 && (
+            {sortedMaterials.length === 0 && (
               <tr>
                 <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
                   {t('matNoResults')}

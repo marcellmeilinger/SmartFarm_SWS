@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ArrowUpRight, ArrowDownRight, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react';
 import type { Transaction } from '../db/dbService';
 import { useTranslation } from '../context/LanguageContext';
 
@@ -14,6 +14,79 @@ export const MovementsView: React.FC<MovementsViewProps> = ({
 }) => {
   const { t, language } = useTranslation();
   const [selectedNotes, setSelectedNotes] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<'timestamp' | 'material_id' | 'material_name' | 'type' | 'quantity' | 'user_name' | 'notes' | null>('timestamp');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (field: 'timestamp' | 'material_id' | 'material_name' | 'type' | 'quantity' | 'user_name' | 'notes') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection(field === 'timestamp' ? 'desc' : 'asc');
+    }
+  };
+
+  const renderSortIcon = (field: 'timestamp' | 'material_id' | 'material_name' | 'type' | 'quantity' | 'user_name' | 'notes') => {
+    if (sortField !== field) {
+      return <ArrowUpDown size={12} style={{ opacity: 0.4, marginLeft: '6px' }} />;
+    }
+    return sortDirection === 'asc' ? (
+      <ChevronUp size={12} style={{ color: 'var(--primary)', marginLeft: '6px' }} />
+    ) : (
+      <ChevronDown size={12} style={{ color: 'var(--primary)', marginLeft: '6px' }} />
+    );
+  };
+
+  const sortedTransactions = useMemo(() => {
+    if (!sortField) return transactions;
+    return [...transactions].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      switch (sortField) {
+        case 'timestamp':
+          valA = new Date(a.timestamp).getTime();
+          valB = new Date(b.timestamp).getTime();
+          break;
+        case 'material_id':
+          valA = a.material_id;
+          valB = b.material_id;
+          break;
+        case 'material_name':
+          valA = a.material_name;
+          valB = b.material_name;
+          break;
+        case 'type':
+          valA = a.type;
+          valB = b.type;
+          break;
+        case 'quantity':
+          valA = a.quantity;
+          valB = b.quantity;
+          break;
+        case 'user_name':
+          valA = a.user_name;
+          valB = b.user_name;
+          break;
+        case 'notes':
+          valA = a.notes || '';
+          valB = b.notes || '';
+          break;
+        default:
+          return 0;
+      }
+
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return sortDirection === 'asc' ? valA - valB : valB - valA;
+      }
+
+      const strA = String(valA).toLowerCase();
+      const strB = String(valB).toLowerCase();
+      if (strA < strB) return sortDirection === 'asc' ? -1 : 1;
+      if (strA > strB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [transactions, sortField, sortDirection]);
 
   const formatDateTime = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -36,7 +109,7 @@ export const MovementsView: React.FC<MovementsViewProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <h3 className="mobile-section-title">{t('movTitle')}</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {transactions.map((tItem) => (
+          {sortedTransactions.map((tItem) => (
             <div key={tItem.id} className="mobile-stock-card" style={{ padding: '12px' }}>
               <div className="mobile-stock-card-left">
                 <div className={`movement-icon-wrapper ${tItem.type}`} style={{ width: '28px', height: '28px' }}>
@@ -71,7 +144,7 @@ export const MovementsView: React.FC<MovementsViewProps> = ({
               </div>
             </div>
           ))}
-          {transactions.length === 0 && (
+          {sortedTransactions.length === 0 && (
             <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
               {t('movNoResults')}
             </div>
@@ -127,17 +200,52 @@ export const MovementsView: React.FC<MovementsViewProps> = ({
         <table className="data-table">
           <thead>
             <tr>
-              <th>{t('movColDate')}</th>
-              <th>{t('statId')}</th>
-              <th>{t('statName')}</th>
-              <th>{t('movColType')}</th>
-              <th>{t('movColQty')}</th>
-              <th>{t('movColUser')}</th>
-              <th>{t('movColNotes')}</th>
+              <th className="sortable" onClick={() => handleSort('timestamp')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {t('movColDate')}
+                  {renderSortIcon('timestamp')}
+                </div>
+              </th>
+              <th className="sortable" onClick={() => handleSort('material_id')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {t('statId')}
+                  {renderSortIcon('material_id')}
+                </div>
+              </th>
+              <th className="sortable" onClick={() => handleSort('material_name')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {t('statName')}
+                  {renderSortIcon('material_name')}
+                </div>
+              </th>
+              <th className="sortable" onClick={() => handleSort('type')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {t('movColType')}
+                  {renderSortIcon('type')}
+                </div>
+              </th>
+              <th className="sortable" onClick={() => handleSort('quantity')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {t('movColQty')}
+                  {renderSortIcon('quantity')}
+                </div>
+              </th>
+              <th className="sortable" onClick={() => handleSort('user_name')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {t('movColUser')}
+                  {renderSortIcon('user_name')}
+                </div>
+              </th>
+              <th className="sortable" onClick={() => handleSort('notes')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {t('movColNotes')}
+                  {renderSortIcon('notes')}
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {transactions.map((tItem) => {
+            {sortedTransactions.map((tItem) => {
               const hasLongNotes = tItem.notes && tItem.notes.length > 25;
 
               return (
@@ -198,7 +306,7 @@ export const MovementsView: React.FC<MovementsViewProps> = ({
                 </tr>
               );
             })}
-            {transactions.length === 0 && (
+            {sortedTransactions.length === 0 && (
               <tr>
                 <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)' }}>
                   {t('movNoResults')}

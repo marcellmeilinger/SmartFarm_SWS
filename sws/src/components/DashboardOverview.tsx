@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Sprout, Package, ArrowLeftRight, ShieldAlert, ArrowUpRight, ArrowDownRight, ChevronRight,
-  QrCode, Plus
+  QrCode, Plus, ChevronUp, ChevronDown, ArrowUpDown
 } from 'lucide-react';
 import { getStockStatus } from '../db/dbService';
 import type { Material, Transaction } from '../db/dbService';
@@ -58,9 +58,86 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     return acc;
   }, {} as { [key: string]: number });
 
-  const criticalStockItems = [...materials]
-    .sort((a, b) => (a.quantity / a.max_quantity) - (b.quantity / b.max_quantity))
-    .slice(0, 5);
+  const [criticalSortField, setCriticalSortField] = React.useState<'status' | 'id' | 'name' | 'stock' | 'max_quantity' | 'level' | 'location' | null>(null);
+  const [criticalSortDirection, setCriticalSortDirection] = React.useState<'asc' | 'desc'>('asc');
+
+  const defaultCriticalItems = React.useMemo(() => {
+    return [...materials]
+      .sort((a, b) => (a.quantity / a.max_quantity) - (b.quantity / b.max_quantity))
+      .slice(0, 5);
+  }, [materials]);
+
+  const criticalStockItems = React.useMemo(() => {
+    if (!criticalSortField) return defaultCriticalItems;
+
+    return [...defaultCriticalItems].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      switch (criticalSortField) {
+        case 'status':
+          valA = getStockStatus(a.quantity, a.max_quantity);
+          valB = getStockStatus(b.quantity, b.max_quantity);
+          break;
+        case 'id':
+          valA = a.id;
+          valB = b.id;
+          break;
+        case 'name':
+          valA = a.name;
+          valB = b.name;
+          break;
+        case 'stock':
+          valA = a.quantity;
+          valB = b.quantity;
+          break;
+        case 'max_quantity':
+          valA = a.max_quantity;
+          valB = b.max_quantity;
+          break;
+        case 'level':
+          valA = a.quantity / a.max_quantity;
+          valB = b.quantity / b.max_quantity;
+          break;
+        case 'location':
+          valA = a.location;
+          valB = b.location;
+          break;
+        default:
+          return 0;
+      }
+
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return criticalSortDirection === 'asc' ? valA - valB : valB - valA;
+      }
+
+      const strA = String(valA).toLowerCase();
+      const strB = String(valB).toLowerCase();
+      if (strA < strB) return criticalSortDirection === 'asc' ? -1 : 1;
+      if (strA > strB) return criticalSortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [defaultCriticalItems, criticalSortField, criticalSortDirection]);
+
+  const handleCriticalSort = (field: 'status' | 'id' | 'name' | 'stock' | 'max_quantity' | 'level' | 'location') => {
+    if (criticalSortField === field) {
+      setCriticalSortDirection(criticalSortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setCriticalSortField(field);
+      setCriticalSortDirection('asc');
+    }
+  };
+
+  const renderCriticalSortIcon = (field: 'status' | 'id' | 'name' | 'stock' | 'max_quantity' | 'level' | 'location') => {
+    if (criticalSortField !== field) {
+      return <ArrowUpDown size={12} style={{ opacity: 0.4, marginLeft: '6px' }} />;
+    }
+    return criticalSortDirection === 'asc' ? (
+      <ChevronUp size={12} style={{ color: 'var(--primary)', marginLeft: '6px' }} />
+    ) : (
+      <ChevronDown size={12} style={{ color: 'var(--primary)', marginLeft: '6px' }} />
+    );
+  };
 
   const renderDonutChart = () => {
     const categoriesList = Object.keys(categoryColors);
@@ -373,13 +450,48 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>{t('statStatus')}</th>
-                  <th>{t('statId')}</th>
-                  <th>{t('statName')}</th>
-                  <th>{t('statStock')}</th>
-                  <th>MAX</th>
-                  <th>{t('statLevel')}</th>
-                  <th>{t('statLocation')}</th>
+                  <th className="sortable" onClick={() => handleCriticalSort('status')}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      {t('statStatus')}
+                      {renderCriticalSortIcon('status')}
+                    </div>
+                  </th>
+                  <th className="sortable" onClick={() => handleCriticalSort('id')}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      {t('statId')}
+                      {renderCriticalSortIcon('id')}
+                    </div>
+                  </th>
+                  <th className="sortable" onClick={() => handleCriticalSort('name')}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      {t('statName')}
+                      {renderCriticalSortIcon('name')}
+                    </div>
+                  </th>
+                  <th className="sortable" onClick={() => handleCriticalSort('stock')}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      {t('statStock')}
+                      {renderCriticalSortIcon('stock')}
+                    </div>
+                  </th>
+                  <th className="sortable" onClick={() => handleCriticalSort('max_quantity')}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      MAX
+                      {renderCriticalSortIcon('max_quantity')}
+                    </div>
+                  </th>
+                  <th className="sortable" onClick={() => handleCriticalSort('level')}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      {t('statLevel')}
+                      {renderCriticalSortIcon('level')}
+                    </div>
+                  </th>
+                  <th className="sortable" onClick={() => handleCriticalSort('location')}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      {t('statLocation')}
+                      {renderCriticalSortIcon('location')}
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>

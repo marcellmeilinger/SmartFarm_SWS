@@ -737,6 +737,17 @@ input:focus, select:focus, textarea:focus {
   letter-spacing: 0.5px;
 }
 
+.data-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.data-table th.sortable:hover {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+}
+
 .data-table td {
   padding: 16px;
   border-bottom: 1px solid var(--border);
